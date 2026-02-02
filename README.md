@@ -1,0 +1,140 @@
+# PIC16F88 UART Bootloader Project
+
+This repository contains a **complete UART bootloader solution** for the **PIC16F88**, including:
+
+* MPLAB X firmware projects (bootloader + application)
+* A B4J desktop uploader tool to **Erase, Flash, and Verify** the application firmware
+
+The goal of this project is to provide a clean, understandable reference implementation of a PIC16F88 bootloader with a PC-side uploader.
+
+---
+
+## 📂 Repository Structure
+
+```
+/BootLoader16F88.X        → MPLAB X Bootloader firmware
+/BootloaderApp16F88.X    → MPLAB X Application firmware
+/B4J-BootloaderUploader  → B4J PC uploader tool
+```
+
+---
+
+## 🔧 Target Hardware
+
+* **Microcontroller:** PIC16F88
+* **Programming Interface:** UART (via USB-to-TTL adapter)
+* **Target Voltage:** 5V
+
+### LED Indicators
+
+| Function        | Port Pin |
+| --------------- | -------- |
+| Bootloader LED  | PORTB.4  |
+| Application LED | PORTB.3  |
+
+* **PORTB.4** blinks or indicates when the **bootloader** is active
+* **PORTB.3** is controlled by the **application firmware**
+
+---
+
+## 🧠 MPLAB X Projects
+
+### 1️⃣ BootLoader16F88.X (Bootloader)
+
+* Resides at the lower program memory
+* Initializes UART communication
+* Waits for commands from the PC uploader
+* Supports:
+
+  * Flash erase
+  * Application programming
+  * Flash verification
+* Provides visual status using **PORTB.4 LED**
+* Jumps to application if no bootloader request is detected
+
+---
+
+### 2️⃣ BootloaderApp16F88.X (Application)
+
+* User application firmware
+* Lives in application memory space
+* Demonstrates successful boot by toggling **PORTB.3 LED**
+* Can be erased and reprogrammed by the bootloader
+
+---
+
+## 🖥️ B4J Bootloader Uploader
+
+The B4J project is a **PC-side bootloader uploader tool**.
+
+### Features
+
+* Parses **Intel HEX** firmware files
+* Communicates with the PIC over UART
+* Supports:
+
+  * **Erase** application flash
+  * **Flash** application firmware
+  * **Verify** programmed data
+* Handles word-addressed PIC flash correctly
+* Designed specifically for PIC16F88 bootloader protocol
+
+---
+
+## 🔌 UART Connection
+
+Typical UART wiring using a USB-to-TTL adapter:
+
+| USB-TTL | PIC16F88 |
+| ------- | -------- |
+| TX      | RX       |
+| RX      | TX       |
+| GND     | VSS      |
+
+> ⚠️ Ensure logic levels are **5V compatible**
+
+---
+
+## 🚀 How It Works (High Level)
+
+1. PIC powers up
+2. Bootloader checks for PC communication
+3. If detected:
+
+   * Enters bootloader mode
+   * Accepts erase / flash / verify commands
+4. If not detected:
+
+   * Jumps to application
+5. Application runs and toggles **PORTB.3 LED**
+
+---
+
+## 🧪 Tested Setup
+
+* PIC16F88
+* USB-to-TTL serial adapter
+* MPLAB X IDE
+* B4J (Anywhere Software)
+
+---
+
+## 📌 Notes
+
+* Bootloader and application are **separate MPLAB X projects**
+* Designed for clarity and learning, not maximum flash compression
+* Code is intentionally readable and well-structured
+
+---
+
+## 📜 License
+
+Open-source. Use, modify, and learn from it freely.
+
+---
+
+## ✨ Author
+
+Issac
+
+Enjoy hacking the PIC16F88 🚀
