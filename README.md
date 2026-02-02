@@ -38,8 +38,13 @@ The goal of this project is to provide a clean, understandable reference impleme
 ---
 
 ## 🧠 MPLAB X Projects
+I use version MPLAB X IDE 6.05 version (support Pickit 3/3.5 if using this!)
 
 ### 1️⃣ BootLoader16F88.X (Bootloader)
+[MPLAB Ecosystem – Microchip](https://www.microchip.com/en-us/tools-resources/archives/mplab-ecosystem)
+
+Start MPLAB X IDE and right click Loadables -> Add Loadables Project -> Choose BootloaderApp16F88.X Folder. 
+Right click BootLoader16F88 in Projects and set as Main Project.
 
 * Resides at the lower program memory
 * Initializes UART communication
@@ -64,9 +69,16 @@ The goal of this project is to provide a clean, understandable reference impleme
 ---
 
 ## 🖥️ B4J Bootloader Uploader
+[B4J – B4X](https://www.b4x.com/b4j.html)
 
 The B4J project is a **PC-side bootloader uploader tool**.
 
+### Libraries required
+* jRandomAccess
+* jSerial
+* jFX
+* B4XPages
+  
 ### Features
 
 * Parses **Intel HEX** firmware files
