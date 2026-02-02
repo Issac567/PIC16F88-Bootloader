@@ -38,7 +38,7 @@ The goal of this project is to provide a clean, understandable reference impleme
 ---
 
 ## 🧠 MPLAB X Projects
-I use version MPLAB X IDE 6.05 version (support Pickit 3/3.5 if using this!)
+I use version MPLAB X IDE 6.05 (supports Pickit 3/3.5 if using this!)
 
 ### 1️⃣ BootLoader16F88.X (Bootloader)
 [MPLAB Ecosystem – Microchip](https://www.microchip.com/en-us/tools-resources/archives/mplab-ecosystem)
