@@ -90,6 +90,7 @@ The B4J project is a **PC-side bootloader uploader tool**.
   * **Verify** programmed data
 * Handles word-addressed PIC flash correctly
 * Designed specifically for PIC16F88 bootloader protocol
+* Load Firmware BootloaderApp16F88.X Intel Hex file under dist -> default -> production -> BootloaderApp16F88.X.production.hex
 
 ---
 
