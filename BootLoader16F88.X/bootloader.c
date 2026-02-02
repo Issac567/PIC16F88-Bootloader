@@ -266,8 +266,8 @@ void Verify_Flash(void)
 
         UART_TxString(">");
         
-        // Delay ~25 ms.  Do not use anything less.  PC B4J will not parse properly!
-        __delay_ms(25);
+        // Delay ~30 ms.  Do not use anything less.  PC B4J will not parse properly!
+        __delay_ms(30);
     }
 
     // Send to host
@@ -520,3 +520,4 @@ void main(void) {
     asm("goto 0x600");              // If bootloader is not init from PC, then continue to application
 
 }
+
