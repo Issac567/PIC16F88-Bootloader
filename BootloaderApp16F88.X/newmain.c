@@ -35,6 +35,9 @@ void UART_Init(void)
     // For FOSC = 8 MHz, desired baud = 57600:
     // SPBRG = (FOSC / (16 * Baud)) - 1
     // SPBRG = (8,000,000 / (16 * 57600)) - 1 ? 8
+    
+    // Using 57600 Baud!
+    
     SPBRG = 8;              // Set SPBRG for 57600 baud
     BRGH  = 1;              // High-Speed baud
 
@@ -62,6 +65,8 @@ uint8_t UART_Rx(void)
 // Write to EEPROM just one address to confirm on real hardware.
 void EEPROM_WriteByte(uint8_t address, uint8_t data) 
 {
+    // Not used just keeping a template of it!
+    
     while (WR);             // Wait until previous write finishes
     EEADR = address;        // Address to write
     EEDATA = data;          // Data to write
@@ -113,4 +118,15 @@ void main(void) {
 }
 
 
-        
+/* Send Bytes as Hex to Host for debugging only!  Template if needed
+ char hexChars[] = "0123456789ABCDEF";
+ uint8_t b = temp[byteCount];
+
+ // send high nibble
+ UART_Tx(hexChars[(b >> 4) & 0xF]);
+ // send low nibble
+ UART_Tx(hexChars[b & 0xF]);
+ // send marker
+ UART_Tx('>');
+ __delay_ms(30);
+ */        
