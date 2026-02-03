@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.01
+ * Version: 1.02
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -165,7 +165,8 @@ void __interrupt() ISR(void)
         {
             t2_counter = 0;                         // Reset it
             Timer2_Timout = true;                   // Set true for looper to detect flag
-            UART_TxString("<ISR Trigger>");         // Send to host
+            
+            UART_TxString("<ISR Timeout>");         // Send to host
             __delay_ms(MSG_MS_DELAY);               // Must for B4J Newdata
         }
     }
@@ -328,6 +329,9 @@ bool ReceivePacket(void)
 
     RCSTAbits.CREN = 1;     // make sure continuous receive enabled
 
+    // PC B4J need this for next packet receive
+    UART_TxString("<ACK>"); 
+        
     while (byteCount < 8)
     {
         // Handle overrun
@@ -414,11 +418,7 @@ void DoFirmwareUpdate(void)
             timeoutCount++;
             
             Timer2_Stop();
-            
-            // Send to host
-            UART_TxString("<Timeout>");
-            __delay_ms(MSG_MS_DELAY);
-            
+                        
             // Exit after 3 consecutive timeouts
             if (timeoutCount >= 3)
             {
@@ -436,13 +436,6 @@ void DoFirmwareUpdate(void)
                 return;
             } 
             
-            // Continue the next packet and start timer2
-            else 
-            
-            {
-                Timer2_Start();
-            }
-
             // Otherwise, continue waiting for next packet
         }
     }
