@@ -1,5 +1,6 @@
 /*
  * File:   bootloader.c
+ * Version: 1.01
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -263,7 +264,7 @@ void Verify_Flash(void)
             UART_Tx(packet[i] >> 8);                // Second Byte (MSB) Shift upper to lower
         }
 
-        UART_TxString(">");
+       // UART_TxString(">");                       // Not using this method anymore!!
         
         // Delay ~30 ms.  Do not use anything less.  PC B4J will not parse properly!
         __delay_ms(30);
@@ -338,7 +339,7 @@ bool ReceivePacket(void)
 
         // Timeout check
         if (Timer2_Timout)
-        {            
+        {
             return false;
         }
 
@@ -421,6 +422,13 @@ void DoFirmwareUpdate(void)
             // Exit after 3 consecutive timeouts
             if (timeoutCount >= 3)
             {
+                if (flashAddr < FLASH_END)
+                {
+                    // Send to host
+                    UART_TxString("<CorruptFlow>");    
+                    __delay_ms(MSG_MS_DELAY);
+                }
+                    
                 // Send to host
                 UART_TxString("<ErrorTimeout>");    
                 __delay_ms(MSG_MS_DELAY);
@@ -505,4 +513,3 @@ void main(void) {
     asm("goto 0x600");              // If bootloader is not init from PC, then continue to application
 
 }
-
