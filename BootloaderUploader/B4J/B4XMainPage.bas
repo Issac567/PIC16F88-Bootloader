@@ -9,6 +9,8 @@ Version=9.85
 'Ctrl + click to sync files: ide://run?file=%WINDIR%\System32\Robocopy.exe&args=..\..\Shared+Files&args=..\Files&FilesSync=True
 #End Region
 
+'VERSION 1.01
+
 'Ctrl + click to export as zip: ide://run?File=%B4X%\Zipper.jar&Args=Project.zip
 
 Sub Class_Globals
@@ -95,35 +97,32 @@ Sub AStream_NewData (Buffer() As Byte)
 	rxBuffer = AppendBytes(rxBuffer, Buffer)
 	
 	' Pic 16F88 sends with > as last byte to confirm end of message or bytes
-	If rxBufferString.Contains(">") Then
+	If rxBufferString.Contains(">") Or blnVerifyRequest = True Then
 		HandleMessage(rxBufferString, rxBuffer)
 		rxBufferString = ""
 		rxBuffer = Array As Byte() ' Resets to an empty array (length 0)
 	End If
 	
 End Sub
-Sub AppendBytes(target() As Byte, data() As Byte) As Byte()
+Sub AppendBytes(OldBuffer() As Byte, NewBuffer() As Byte) As Byte()
 	' Total length = old + new
-	Dim totalLength As Int = target.Length + data.Length
+	Dim totalLength As Int = OldBuffer.Length + NewBuffer.Length
 	If totalLength = 0 Then Return Array As Byte() ' nothing to append
 
 	' Allocate new array
 	Dim newArray(totalLength) As Byte
-	'For x = 0 To totalLength - 1
-	'	newArray(x) = 0x00
-	'Next
 
 	' Copy old data
 	Dim i As Int
-	For i = 0 To target.Length - 1
-		newArray(i) = target(i)
+	For i = 0 To OldBuffer.Length - 1
+		newArray(i) = OldBuffer(i)
 	Next
 	
-	Dim StartLen As Int = target.Length
+	Dim StartLen As Int = OldBuffer.Length
 
 	' Copy new data
-	For i = 0 To data.Length - 1
-		newArray(StartLen + i) = data(i)
+	For i = 0 To NewBuffer.Length - 1
+		newArray(StartLen + i) = NewBuffer(i)
 	Next
 
 	Return newArray
@@ -170,10 +169,12 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 		Case Else
 			' This is triggered by <StartVerifyFlash> from PIC after Flash Write
 			If blnVerifyRequest = True Then
-				'LogMessage("Incoming", BytesToHexString(buffer))
-				
-				For x = 0 To buffer.Length - 1 - 1	' last buffer is ">" we dont include it
+				'LogMessage("Incoming", BytesToHexString(buffer))  ' debugging only!!!
+								
+				'For x = 0 To buffer.Length - 1 - 1	' last buffer is ">" we dont include it.  OLD VERSION do not USE!!!
+				For x = 0 To buffer.Length - 1  ' This method is better.  Newdata does not guarantee all block in one event
 					' This array will compare to firmware() which is file binary
+					
 					firmwareVerify(cntVerify) = buffer(x)
 										
 					' Update progress bar
@@ -192,7 +193,6 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 			
 	End Select
 End Sub
-
 Sub AStream_Error
 	LogMessage("Status", "Error: " & LastException)
 	AStream_Terminated
@@ -343,7 +343,7 @@ End Sub
 Sub SendHandshakeLoop
 	' if not init
 	If astream.IsInitialized = False Then
-		LogMessage("Handshake", "Error Astream not initialized")
+		LogMessage("SendHandshakeLoop", "Error Astream not initialized")
 		Return
 	End If
 	
@@ -519,4 +519,3 @@ Sub BytesToHexString2(b As Byte) As String
 	
 	Return byteString.ToUpperCase
 End Sub
-
