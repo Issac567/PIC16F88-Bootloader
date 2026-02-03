@@ -11,13 +11,13 @@
 #include <stdbool.h>                        // for bool, true, false
 #include "config.h"
 
-#define FLASH_START 0x0600                  // flash start address
-#define FLASH_END 0x0FFF                    // Last address for 4-word block
-#define FLASH_ERASE_BLOCK 32
-#define FLASH_WRITE_BLOCK 4
-#define TIMER2_COUNT_FOR_1S 31              // 32ms x 31 = 1000 ms or 1S Timout
+#define FLASH_START 0x0600                  // Flash start address
+#define FLASH_END 0x0FFF                    // Flash end address for 4-word block
+#define FLASH_ERASE_BLOCK 32                // Runtime can only do 32 block erase max!
+#define FLASH_WRITE_BLOCK 4                 // Can only do 4 block write max with PIC 16F88!
+#define TIMER2_COUNT_FOR_1S 31              // 32ms(ISR Trigger) x 31(t2_counter) = 1000 ms or 1S Timout
 //#define TIMER2_COUNT_FOR_1S 93              // 3s
-#define MSG_MS_DELAY 50                  // Delay for Tx 
+#define MSG_MS_DELAY 50                     // Delay for UART_TxString 
 
 #define LED_PIN PORTBbits.RB4               // Bootloader Led Status    
 #define LED_TRIS TRISBbits.TRISB4           // Output PortB.4 pin
@@ -38,7 +38,6 @@ void INTOSC_Init(void)
 
     OSCCONbits.SCS1  = 1;           // SCS<1:0> = 10 ? system clock = internal oscillator
     OSCCONbits.SCS0  = 0;   
-    
 }
 
 
@@ -78,7 +77,7 @@ void UART_Init(void)
     // Read all pending bytes
     uint8_t dummy;
     while (PIR1bits.RCIF) {
-        dummy = RCREG;   // discard byte
+        dummy = RCREG;      // discard byte
     }
 }
 
@@ -137,7 +136,7 @@ void Timer2_Start(void)
 {
    PIR1bits.TMR2IF = 0;        // clear pending interrupt FIRST
    t2_counter = 0;             // reset ISR counter
-   TMR2 = 0;                   // reset counter
+   TMR2 = 0;                   // reset File Register counter
 
    PIE1bits.TMR2IE = 1;        // enable Timer2 interrupt flag LAST
    Timer2_Timout = false;      // Clear flag boolean
@@ -160,13 +159,13 @@ void __interrupt() ISR(void)
     {
         PIR1bits.TMR2IF = 0;                        // Clear flag
 
-        t2_counter++;
+        t2_counter++;                               // counter to compare
         if (t2_counter >= TIMER2_COUNT_FOR_1S)      
         {
-            t2_counter = 0;
-            Timer2_Timout = true;                   // Set true for looper to detect
+            t2_counter = 0;                         // Reset it
+            Timer2_Timout = true;                   // Set true for looper to detect flag
             UART_TxString("<ISR Trigger>");         // Send to host
-            __delay_ms(MSG_MS_DELAY);
+            __delay_ms(MSG_MS_DELAY);               // Must for B4J Newdata
         }
     }
 }
@@ -201,33 +200,33 @@ void Flash_WriteBlock(uint16_t address, uint16_t *data)
 {
     uint16_t i;
 
-    address &= 0xFFFC;              // align to 4-word block
-    GIE = 0;                        // Disable interrupts
+    address &= 0xFFFC;                      // align to 4-word block
+    GIE = 0;                                // Disable interrupts
             
     for (i = 0; i < FLASH_WRITE_BLOCK; i++) 
     {
-        EEPGD = 1;                  // Select program memory type
-        WREN  = 1;                  // Enable write
-        FREE  = 0;                  // Stop erase
+        EEPGD = 1;                          // Select program memory type
+        WREN  = 1;                          // Enable write
+        FREE  = 0;                          // Stop erase
         
-        EEADR  = (address + i) & 0x00FF;  // Low byte address
-        EEADRH = (address + i) >> 8;      // High byte address
+        EEADR  = (address + i) & 0x00FF;    // Low byte address
+        EEADRH = (address + i) >> 8;        // High byte address
         
         //data = MSB LSB order
-        EEDATA = data[i] & 0x00FF;  // Low byte data of address (mask MSB byte))
-        EEDATH = data[i] >> 8;      // High byte data of address (shift data right 8))
+        EEDATA = data[i] & 0x00FF;          // Low byte data of address (mask MSB byte))
+        EEDATH = data[i] >> 8;              // High byte data of address (shift data right 8))
         
-        EECON2 = 0x55;              // Unlock sequence
+        EECON2 = 0x55;                      // Unlock sequence
         EECON2 = 0xAA;
 
-        WR = 1;                     // Start write
-        //while (WR);               // NO NO not in document wait until this word is written
+        WR = 1;                             // Start write
+        //while (WR);                       // NO NO not in document wait until this word is written
         
-        NOP();                      // Short delay required
+        NOP();                              // Short delay required
         NOP();                 
     }
-    WREN = 0;                       // Disable writes
-    GIE = 1;                        // Enable interrupts
+    WREN = 0;                               // Disable writes
+    GIE = 1;                                // Enable interrupts
 }
 
 
@@ -239,7 +238,7 @@ void Verify_Flash(void)
 {
     uint16_t addr;
     
-    // Timer not needed.  B4J will receive continous Block of data with 25 ms delay
+    // Timer not needed.  B4J will receive continous Block of data with 30 ms delay
     Timer2_Stop();                  
 
     // Send to host
@@ -259,9 +258,9 @@ void Verify_Flash(void)
         // Send packet to B4J 
         for (uint8_t i = 0; i < FLASH_WRITE_BLOCK; i++)
         {
-            // eg. 0x3FF = FF first then 3F second (B4J binary is backwards!)
-            UART_Tx(packet[i] & 0xFF);    // First Byte (LSB)
-            UART_Tx(packet[i] >> 8);      // Second Byte (MSB)
+            // eg. 0x3FFF = FF first then 3F second (B4J binary is backwards!)
+            UART_Tx(packet[i] & 0xFF);              // First Byte (LSB)
+            UART_Tx(packet[i] >> 8);                // Second Byte (MSB) Shift upper to lower
         }
 
         UART_TxString(">");
@@ -282,12 +281,13 @@ void Verify_Flash(void)
 // ERASE FLASH BLOCK 32 word erase at each for 
 void Flash_EraseApplication(void)
 {
-    UART_TxString("<StartFlashErase>");    // Send to host
+    // Send to host
+    UART_TxString("<StartFlashErase>");    
     __delay_ms(MSG_MS_DELAY);
     
     uint16_t addr;
  
-    // Application area: 0x0800 to 0xFDF (Change to 0x0600 when ready)
+    // Application area: 0x0600 to 0xFFF 
     for (addr = FLASH_START; addr + FLASH_ERASE_BLOCK - 1 <= FLASH_END; addr += FLASH_ERASE_BLOCK) // step 32 words
     {
         EEADR  = addr & 0xFF;     // Example 0x0800 Address Set will erase 0x0800 to 0x81F
@@ -310,7 +310,8 @@ void Flash_EraseApplication(void)
         GIE = 1;        // Enable interrupts
     }
     
-    UART_TxString("<EndFlashErase>");    // Send to host
+    // Send to host
+    UART_TxString("<EndFlashErase>");  
     __delay_ms(MSG_MS_DELAY);
 }
 
@@ -321,8 +322,8 @@ void Flash_EraseApplication(void)
 // Receive bytes from UART until timeout
 bool ReceivePacket(void)
 {
-    uint8_t temp[8];
-    uint8_t byteCount = 0;
+    uint8_t temp[8];        // Variable to hold packet received
+    uint8_t byteCount = 0;  // counter
 
     RCSTAbits.CREN = 1;     // make sure continuous receive enabled
 
@@ -348,21 +349,8 @@ bool ReceivePacket(void)
         // Wait for a byte to be received
         if (PIR1bits.RCIF)                  // RCIF = 1 when RCREG has new byte
         {
-            temp[byteCount] = RCREG;        // MSB first then LSB
-            
-            /* Send Bytes as Hex to Host for debugging only!
-            char hexChars[] = "0123456789ABCDEF";
-            uint8_t b = temp[byteCount];
-
-            // send high nibble
-            UART_Tx(hexChars[(b >> 4) & 0xF]);
-            // send low nibble
-            UART_Tx(hexChars[b & 0xF]);
-            // send marker
-            UART_Tx('>');
-            __delay_ms(30);
-            */
-            
+            temp[byteCount] = RCREG;        // MSB first then LSB from B4J binary
+                        
             byteCount++;                    // Increment counter
             
             Timer2_Stop();                  // Reset timer2 
@@ -377,8 +365,8 @@ bool ReceivePacket(void)
     {
         /* Flash packet will store as MSB then LSB.
         temp[1] << 8  = 0x3F00 | temp[0] = 0x00FF
-        ---------------------
-                        0x3FFF */
+        ------------------------------------------
+        0x3FFF opposite of binary storage from B4J, Intel Hex and verify sending */
         flash_packet[i] = ((uint16_t)temp[i*2 + 1] << 8) | temp[i*2];
     }
 
@@ -397,8 +385,9 @@ void DoFirmwareUpdate(void)
         
     while (1)
     {
-        Timer2_Stop();
+        Timer2_Stop();                      // Reset timer2
         Timer2_Start();
+        
         if (ReceivePacket())                // Check packet 8 bytes total 4 word
         {
             // Successfully received a packet, reset timeout counter
@@ -460,17 +449,17 @@ void WaitHandshake(void) {
     uint8_t prev = 0;
     uint8_t curr;
     
-    Timer2_Start();                 // Start Timer2 Timeout
+    Timer2_Start();                     // Start Timer2 Timeout
     
     while (!Timer2_Timout)
     {
-        if (RCSTAbits.OERR)          // If overrun
+        if (RCSTAbits.OERR)             // If overrun
         {
-            RCSTAbits.CREN = 0;      // Clears overrun error
-            RCSTAbits.CREN = 1;      // Enable continuous reception
+            RCSTAbits.CREN = 0;         // Clears overrun error
+            RCSTAbits.CREN = 1;         // Enable continuous reception
         }
        
-        if(PIR1bits.RCIF)            // UART receive interrupt flag set (data received in RCREG)
+        if(PIR1bits.RCIF)               // UART receive interrupt flag set (data received in RCREG)
         {
             curr = UART_Rx();
                 
@@ -520,4 +509,3 @@ void main(void) {
     asm("goto 0x600");              // If bootloader is not init from PC, then continue to application
 
 }
-
