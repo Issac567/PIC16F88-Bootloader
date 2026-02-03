@@ -9,7 +9,7 @@ Version=9.85
 'Ctrl + click to sync files: ide://run?file=%WINDIR%\System32\Robocopy.exe&args=..\..\Shared+Files&args=..\Files&FilesSync=True
 #End Region
 
-'VERSION 1.01
+'VERSION 1.02
 
 'Ctrl + click to export as zip: ide://run?File=%B4X%\Zipper.jar&Args=Project.zip
 
@@ -47,10 +47,10 @@ Sub Class_Globals
 	Private bln16F88ExitTimeoutError As Boolean				' <TimeoutError> from 16F88
 	Private blnAppExitAstreamError	As Boolean				' Astream error exit loop from app
 	Private blnAppStopQuit As Boolean						' Exit loop for Stop and Quit from app
+	Private blnACK As Boolean								' Firmware Upload.  Needs this <ACK> from PIC to continue next 8 bytes
 	
 	Private rxBufferString As String						' Buffer Newdata in string format
 	Private rxBuffer() As Byte								' Buffer Newdata in byte format 
-	
 
 End Sub
 
@@ -129,8 +129,8 @@ Sub AppendBytes(OldBuffer() As Byte, NewBuffer() As Byte) As Byte()
 End Sub
 Sub HandleMessage(msg As String, buffer() As Byte)
 	
-	' Do this so Logmessage wont flood the log view only with Verify data (4 words at a time)
-	If blnVerifyRequest = False Then
+	' Do this so Logmessage wont flood the log view only with <ACK> and Verify data (4 words at a time)
+	If blnVerifyRequest = False And msg <> "<ACK>" Then
 		LogMessage("PIC16F88", msg)
 	End If
 	
@@ -140,31 +140,35 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 			bln16F88HandShakeSuccess = True
 			LogMessage("Status", "PIC responded! Done sending 0x55 0xAA")
 			
-			' Timeout 3 times = error by PIC
+		' Timeout 3 times = error by PIC
 		Case "<ErrorTimeout>"
 			bln16F88ExitTimeoutError = True
 			EnableButtons
 			LogMessage("Status", "PIC reported timeout error, try again")
 			
-			' 1 second timeout.  if no handshake it will enter application
+		' 1 second timeout.  if no handshake it will enter application
 		Case "<HandShakeTimeout>"
 			LogMessage("Status", "Timeout exiting bootloader --> entering application.")
 			
-			' Start of verify flash program code
+		' Start of verify flash program code
 		Case "<StartVerifyFlash>"
 			cntVerify = 0
 			blnVerifyRequest = True
 			LogMessage("Status", "Waiting for Verification...")
 			
-			' End of verify flash program code
+		' End of verify flash program code
 		Case "<EndVerifyFlash>"
 			EnableButtons
 			VerifyStatus
 			
-			' When Pic send this start the flash
+		' When Pic send this start the flash
 		Case "<EndFlashErase>"
 			Sleep(200)
 			SendFirmware
+		
+		' B4J expects <ACK> from PIC so it sends next packets
+		Case "<ACK>"
+			blnACK = True
 			
 		Case Else
 			' This is triggered by <StartVerifyFlash> from PIC after Flash Write
@@ -354,15 +358,8 @@ Sub SendHandshakeLoop
 	DisableButtons
 	
 	Do While True
-		' Astream error or terminated
-		If blnAppExitAstreamError = True Then
-			Return
-		End If
-		
-		' Stop or Quit Detected
-		If blnAppStopQuit = True Then
-			Return
-		End If
+		' Status boolean
+		If GetBooleanStatus = True Then Return
 		
 		' Exit and Start firmware upload if PIC signals handshake success
 		If bln16F88HandShakeSuccess = True Then
@@ -393,7 +390,7 @@ Sub SendFirmware
 	LogMessage("FirmwareUpload", "Firmware size: " & firmware.Length & " bytes, total blocks: " & totalBlocks)
 
 	For i = 0 To firmware.Length - 1 Step BLOCK_SIZE
-					
+
 		' Copy bytes into block with padding if last block is smaller
 		Dim remaining As Int = firmware.Length - i
 		Dim currentBlockSize As Int = Min(BLOCK_SIZE, remaining)
@@ -408,20 +405,15 @@ Sub SendFirmware
 			End If
 		Next
 		
-		' Pic 16f88 reported timeout error (Handshake does not have this!)
-		If bln16F88ExitTimeoutError = True Then
-			Return
-		End If
-		
-		' Astream error or terminated
-		If blnAppExitAstreamError = True Then
-			Return
-		End If
-		
-		' Stop or Quit Detected
-		If blnAppStopQuit = True Then
-			Return
-		End If
+		' Status boolean
+		If GetBooleanStatus = True Then Return
+
+		Do While blnACK = False
+			' Status boolean
+			If GetBooleanStatus = True Then Return
+			
+			Sleep(0)
+		Loop
 		
 		' Send each byte with minimum 2 ms delay
 		For x = 0 To BLOCK_SIZE - 1
@@ -433,11 +425,33 @@ Sub SendFirmware
 		
 		' Update progress bar
 		prgBar.Progress = Min(1, (i + BLOCK_SIZE) / firmware.Length)
+		
+		'Reset this
+		blnACK = False
+		
 	Next
 	
 	LogMessage("FirmwareUpload", "Firmware upload completed!")
 
 
+End Sub
+Sub GetBooleanStatus As Boolean
+	' Pic 16f88 reported timeout error (Handshake does not have this!)
+	If bln16F88ExitTimeoutError = True Then
+		Return True
+	End If
+		
+	' Astream error or terminated
+	If blnAppExitAstreamError = True Then
+		Return True
+	End If
+		
+	' Stop or Quit Detected
+	If blnAppStopQuit = True Then
+		Return True
+	End If
+	
+	Return False
 End Sub
 
 Sub VerifyStatus
@@ -488,6 +502,7 @@ Sub EnableButtons
 	blnProgrammingInProgress = False
 	btnFlash.Text = "Flash"
 	blnAppStopQuit = True
+	blnACK = False
 	B4XPages.GetNativeParent(Me).Resizable = True
 End Sub
 
