@@ -338,11 +338,7 @@ bool ReceivePacket(void)
 
         // Timeout check
         if (Timer2_Timout)
-        {
-            // Send to host
-            UART_TxString("<FlashTimeout>");
-            __delay_ms(MSG_MS_DELAY);
-            
+        {            
             return false;
         }
 
@@ -509,3 +505,4 @@ void main(void) {
     asm("goto 0x600");              // If bootloader is not init from PC, then continue to application
 
 }
+
