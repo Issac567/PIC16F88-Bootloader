@@ -1,7 +1,7 @@
 /*
  * File:   newmain.c
  * Author: issac
- *
+ * Version: 1.01
  * Created on January 18, 2026, 12:13 PM
  */
 
@@ -130,3 +130,4 @@ void main(void) {
  UART_Tx('>');
  __delay_ms(30);
  */        
+
