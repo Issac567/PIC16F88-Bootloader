@@ -116,7 +116,7 @@ void TIMER2_Init(void)
 {
     T2CONbits.TMR2ON = 0;         // Timer2 OFF, will start with Timer2_Start()
     PIR1bits.TMR2IF = 0;          // Clear Timer2 interrupt flag
-    PIE1bits.TMR2IE = 1;          // Disable Timer2 interrupt
+    PIE1bits.TMR2IE = 0;          // Disable Timer2 interrupt
     TMR2 = 0;                     // Clear timer
 
     PR2 = 249;                    // Timer2 period ? 32ms per interrupt    
