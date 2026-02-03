@@ -16,7 +16,7 @@ Sub Class_Globals
 	Private Const END_ADDR_FLASH As Int = 0x0FFF			' End Address of Flash
 	Private Const WORDS_PER_PACKET As Int = 4				' Total Word Per Packet for Write Block
 	Private Const BLOCK_SIZE As Int = WORDS_PER_PACKET * 2 	' 4 words = 8 bytes per Write block
-	Private Const PACKET_DELAY_MS As Int = 2				' Write Block Packet Delay 
+	Private Const PACKET_DELAY_MS As Int = 4				' Write Block Packet Delay 
 	Private Const HANDSHAKE_DELAY_MS As Int = 200 			' Handshake Delay 
 	Private Const MSB_WORD_ADDR As Int = 0x3F				' 14 bit word address MSB	
 	Private Const EXPECTED_FIRMWARE_BYTES As Int = (END_ADDR_FLASH - START_ADDR_FLASH + 1) * 2
@@ -519,3 +519,4 @@ Sub BytesToHexString2(b As Byte) As String
 	
 	Return byteString.ToUpperCase
 End Sub
+
