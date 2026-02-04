@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.02
+ * Version: 1.03
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -324,15 +324,15 @@ void Flash_EraseApplication(void)
 // Receive bytes from UART until timeout
 bool ReceivePacket(void)
 {
-    uint8_t temp[8];        // Variable to hold packet received
-    uint8_t byteCount = 0;  // counter
+    uint8_t temp[FLASH_WRITE_BLOCK * 2];        // Variable to hold packet received (8 bytes expected)
+    uint8_t byteCount = 0;                      // counter
 
-    RCSTAbits.CREN = 1;     // make sure continuous receive enabled
+    RCSTAbits.CREN = 1;                         // make sure continuous receive enabled
 
     // PC B4J need this for next packet receive
     UART_TxString("<ACK>"); 
         
-    while (byteCount < 8)
+    while (byteCount < FLASH_WRITE_BLOCK * 2)   // 4 Word = Flash_write_Block * 2 = 8 bytes expected
     {
         // Handle overrun
         if (RCSTAbits.OERR) 
@@ -362,7 +362,7 @@ bool ReceivePacket(void)
     }
 
     // Convert 8 bytes into 4 words (LSB Then MSB from Host B4J) (Host send eg. 0xFF3F = 0xFF then 0x3F as empty.)
-    for (uint8_t i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < FLASH_WRITE_BLOCK; i++) // 4 Word = Flash_write_Block
     {
         /* Flash packet will store as MSB then LSB.
         temp[1] << 8  = 0x3F00 | temp[0] = 0x00FF
@@ -391,6 +391,24 @@ void DoFirmwareUpdate(void)
         
         if (ReceivePacket())                // Check packet 8 bytes total 4 word
         {
+            
+            /* For Debuggin only!!!
+            char hexChars[] = "0123456789ABCDEF";
+
+            char hexStr[6];          // 4 hex chars + '>' + null
+            uint16_t b = flashAddr;
+
+            hexStr[0] = hexChars[(b >> 12) & 0xF];
+            hexStr[1] = hexChars[(b >> 8)  & 0xF];
+            hexStr[2] = hexChars[(b >> 4)  & 0xF];
+            hexStr[3] = hexChars[b & 0xF];
+            hexStr[4] = '>';
+            hexStr[5] = '\0';
+            
+            UART_TxString(hexStr);
+            __delay_ms(10);
+            */
+            
             // Successfully received a packet, reset timeout counter
             timeoutCount = 0;
                         
