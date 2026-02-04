@@ -9,7 +9,7 @@ Version=9.85
 'Ctrl + click to sync files: ide://run?file=%WINDIR%\System32\Robocopy.exe&args=..\..\Shared+Files&args=..\Files&FilesSync=True
 #End Region
 
-'VERSION 1.02
+'VERSION 1.03
 
 'Ctrl + click to export as zip: ide://run?File=%B4X%\Zipper.jar&Args=Project.zip
 
@@ -25,7 +25,6 @@ Sub Class_Globals
 	
 	Private serial1 As Serial								' UART COM
 	Private astream As AsyncStreams
-	Private jframe As JavaObject							' For file open dialog
 	
 	Private Root As B4XView
 	Private xui As XUI
@@ -244,28 +243,17 @@ End Sub
 
 Private Sub btnLoadFile_Click
 	firmware = Array As Byte() ' Resets to an empty array (length 0)
-	jframe.InitializeNewInstance("javax.swing.JFrame",Array(""))
-	openFileDialog
-End Sub
-Private Sub openFileDialog
-	Dim fileChooser As JavaObject
-	fileChooser.InitializeNewInstance("javax.swing.JFileChooser", Array(Null))
-	Dim result As Int = fileChooser.RunMethod("showOpenDialog", Array(jframe))
-	If result = fileChooser.GetField("APPROVE_OPTION") Then
-		Dim selectedFile As JavaObject = fileChooser.RunMethod("getSelectedFile", Null)
-		Dim filePath As String = selectedFile.RunMethod("getPath", Null)
-		LogMessage("Status", "Selected file Path: " & filePath)
-		Dim FileName As String = fileChooser.RunMethodJO("getSelectedFile",Null).RunMethod("getName",Null)
-		LogMessage("Status", $"Selected file name: ${FileName}"$)
-		' Process and convert to binary the selected file
-		firmware = ConvertHexIntelToBinaryRange(filePath, START_ADDR_FLASH)
+	Dim fc As FileChooser
+	fc.Initialize
+	fc.Title = "Intel Hex File Only!"
+	Dim filepath As String
+	filepath = fc.ShowOpen(B4XPages.GetNativeParent(Me))
+   
+	If filepath <> "" Then
+		LogMessage("Status", "File Path: " & filepath)
+		firmware = ConvertHexIntelToBinaryRange(filepath, START_ADDR_FLASH)
 	Else
 		LogMessage("Status", "No file selected.")
-	End If
-	
-	' Must do or app will not exit. Caused by fileChooser
-	If jframe.IsInitialized Then
-		jframe.RunMethod("dispose", Null)
 	End If
 End Sub
 Sub ConvertHexIntelToBinaryRange(filepath As String, startAddr As Int) As Byte()
@@ -492,7 +480,7 @@ Sub DisableButtons
 	bln16F88HandShakeSuccess = False
 	bln16F88ExitTimeoutError = False
 	blnAppExitAstreamError = False
-	B4XPages.GetNativeParent(Me).Resizable = False
+	'B4XPages.GetNativeParent(Me).Resizable = False
 End Sub
 Sub EnableButtons
 	btnOpen.Enabled = True
@@ -503,7 +491,7 @@ Sub EnableButtons
 	btnFlash.Text = "Flash"
 	blnAppStopQuit = True
 	blnACK = False
-	B4XPages.GetNativeParent(Me).Resizable = True
+	'B4XPages.GetNativeParent(Me).Resizable = True
 End Sub
 
 Sub LogMessage(From As String, Msg As String)
