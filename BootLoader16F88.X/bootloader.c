@@ -521,6 +521,10 @@ void main(void) {
     
     WaitHandshake();                // wait for 0x55 0xAA (200 ms timeout then goto app))
     
+    LED_PIN  = 0;                   // LED Off (bootloader led))
+    
     asm("goto 0x600");              // If bootloader is not init from PC, then continue to application
-
+    
+    
+    // Good news is when bootloader is only flashed the 0x0600 is invalid and causes pic to reset and main repeated over and over till handshake and flash success!
 }
