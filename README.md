@@ -94,20 +94,6 @@ The B4J project is a **PC-side bootloader uploader tool**.
 
 ---
 
-## 🔌 UART Connection
-
-Typical UART wiring using a USB-to-TTL adapter:
-
-| USB-TTL | PIC16F88 |
-| ------- | -------- |
-| TX      | RX       |
-| RX      | TX       |
-| GND     | VSS      |
-
-> ⚠️ Ensure logic levels are **5V compatible**
-
----
-
 ## 🚀 How It Works (High Level)
 
 1. PIC powers up
@@ -137,6 +123,20 @@ Simple wiring for PIC16F88 with power, MCLR, bootloader LED, application LED, an
 | RB5 (pin 11)| UART TX → RX on USB‑TTL         | Bootloader communication |
 | RB2 (pin 8) | UART RX ← TX on USB‑TTL         | Bootloader communication |
 | GND         | GND on USB‑TTL                  | Common ground            |
+
+---
+
+## 🔌 UART Connection
+
+Typical UART wiring using a USB-to-TTL adapter:
+
+| USB-TTL | PIC16F88 |
+| ------- | -------- |
+| TX      | RX       |
+| RX      | TX       |
+| GND     | VSS      |
+
+> ⚠️ Ensure logic levels are **5V compatible**
 
 ---
 
