@@ -140,8 +140,6 @@ Simple wiring for PIC16F88 with power, MCLR, bootloader LED, application LED, an
 | RB2 (pin 8) | UART RX ← TX on USB‑TTL         | Bootloader communication |
 | GND         | GND on USB‑TTL                  | Common ground            |
 
-## 💡 ASCII Diagram
-
 ## 🧪 Tested Setup
 
 * PIC16F88
