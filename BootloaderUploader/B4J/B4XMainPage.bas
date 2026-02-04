@@ -9,7 +9,7 @@ Version=9.85
 'Ctrl + click to sync files: ide://run?file=%WINDIR%\System32\Robocopy.exe&args=..\..\Shared+Files&args=..\Files&FilesSync=True
 #End Region
 
-'VERSION 1.03
+'VERSION 1.04
 
 'Ctrl + click to export as zip: ide://run?File=%B4X%\Zipper.jar&Args=Project.zip
 
@@ -215,7 +215,7 @@ Sub cmbPort_SelectedIndexChanged(Index As Int, Value As Object)
 	btnOpen.Enabled = Index > -1 'enable the button if there is a selected item
 End Sub
 
-Sub btnOpen_Click
+Private Sub btnOpen_Click
 	
 	' Open Port (57600 Baud)
 	If btnOpen.Text = "Open Port" Then
@@ -355,10 +355,10 @@ Sub SendHandshakeLoop
 		Else
 			If xTract = 0 Then
 				astream.Write(b)
-				LogMessage("SendHandshakeLoop", "55")
+				LogMessage("SendHandshakeLoop", "0x55")
 			Else
 				astream.Write(b2)
-				LogMessage("SendHandshakeLoop", "AA")
+				LogMessage("SendHandshakeLoop", "0xAA")
 			End If
 		End If
 				
