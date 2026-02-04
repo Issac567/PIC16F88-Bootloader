@@ -127,6 +127,8 @@ Typical UART wiring using a USB-to-TTL adapter:
 
 Simple wiring for PIC16F88 with power, MCLR, bootloader LED, application LED, and UART‑to‑TTL USB.
 
+---
+
 ## 🔌 Pin Connections
 
 | PIC16F88 Pin | Connection                      | Notes                    |
@@ -139,6 +141,8 @@ Simple wiring for PIC16F88 with power, MCLR, bootloader LED, application LED, an
 | RB5 (pin 11)| UART TX → RX on USB‑TTL         | Bootloader communication |
 | RB2 (pin 8) | UART RX ← TX on USB‑TTL         | Bootloader communication |
 | GND         | GND on USB‑TTL                  | Common ground            |
+
+---
 
 ## 🧪 Tested Setup
 
