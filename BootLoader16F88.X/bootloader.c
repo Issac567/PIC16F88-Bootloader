@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.03
+ * Version: 1.04
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -16,8 +16,8 @@
 #define FLASH_END 0x0FFF                    // Flash end address for 4-word block
 #define FLASH_ERASE_BLOCK 32                // Runtime can only do 32 block erase max!
 #define FLASH_WRITE_BLOCK 4                 // Can only do 4 block write max with PIC 16F88!
-#define TIMER2_COUNT_FOR_1S 31              // 32ms(ISR Trigger) x 31(t2_counter) = 1000 ms or 1S Timout
-//#define TIMER2_COUNT_FOR_1S 93              // 3s
+//#define TIMER2_COUNT_FOR_1S 31              // 32ms(ISR Trigger) x 31(t2_counter) = 1000 ms or 1S Timout
+#define TIMER2_COUNT_FOR_1S 93              // 3s (Use this!! better result!)  (Maybe seperate Handshake and Firmware Update timeout in future. Handshake better at 1 second?))
 #define MSG_MS_DELAY 50                     // Delay for UART_TxString 
 
 #define LED_PIN PORTBbits.RB4               // Bootloader Led Status    
@@ -351,7 +351,7 @@ bool ReceivePacket(void)
         if (PIR1bits.RCIF)                  // RCIF = 1 when RCREG has new byte
         {
             temp[byteCount] = RCREG;        // MSB first then LSB from B4J binary
-                        
+            
             byteCount++;                    // Increment counter
             
             Timer2_Stop();                  // Reset timer2 
