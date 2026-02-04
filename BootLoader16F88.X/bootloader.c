@@ -526,5 +526,5 @@ void main(void) {
     asm("goto 0x600");              // If bootloader is not init from PC, then continue to application
     
     
-    // Good news is when bootloader is only flashed the 0x0600 is invalid and causes pic to reset and main repeated over and over till handshake and flash success!
+    // Good news is when bootloader  goes to 0x0600 and is invalid, causes pic to reset and main repeated over and over till handshake and flash success!
 }
