@@ -51,8 +51,8 @@ Right click BootLoader16F88 in Projects and set as Main Project.
 * Waits for commands from the PC uploader
 * Supports:
 
-  * Flash erase
-  * Application programming
+  * Flash erase (32 word max)
+  * Application programming (4 word max)
   * Flash verification
 * Provides visual status using **PORTB.4 LED**
 * Jumps to application if no bootloader request is detected
