@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.04
+ * Version: 1.05
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -222,7 +222,7 @@ void Flash_WriteBlock(uint16_t address, uint16_t *data)
         EECON2 = 0xAA;
 
         WR = 1;                             // Start write
-        //while (WR);                       // NO NO not in document wait until this word is written
+        while (WR);                         // wait until this word is written
         
         NOP();                              // Short delay required
         NOP();                 
@@ -300,9 +300,12 @@ void Flash_EraseApplication(void)
         FREE  = 1;      // Enable erase
 
         GIE = 0;        // Disable interrupts
+        
         EECON2 = 0x55;  // Unlock Sequence
         EECON2 = 0xAA;
+        
         WR = 1;         // Trigger erase
+        while (WR);     // wait until this word is written
 
         NOP();          // Sequence Required
         NOP();
