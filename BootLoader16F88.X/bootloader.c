@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.05
+ * Version: 1.06
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -65,15 +65,15 @@ void UART_Init(void)
     // SPBRG = (FOSC / (16 * Baud)) - 1
     // SPBRG = (8,000,000 / (16 * 57600)) - 1 ? 8
     SPBRG = 8;              // Set SPBRG for 57600 baud
-    BRGH  = 1;              // High-Speed baud
+    TXSTAbits.BRGH  = 1;    // High-Speed baud
 
     // Serial port enable
-    SYNC = 0;               // Asynchronous mode
-    SPEN = 1;               // Enables UART pins (RB2/RB5)
+    TXSTAbits.SYNC = 0;     // Asynchronous mode
+    RCSTAbits.SPEN = 1;     // Enables UART pins (RB2/RB5)
 
     // Transmission enable
-    TXEN = 1;               // Transmit enable
-    CREN = 1;               // Continuous receive enable
+    TXSTAbits.TXEN = 1;     // Transmit enable
+    RCSTAbits.CREN = 1;     // Continuous receive enable
     
     // Read all pending bytes
     uint8_t dummy;
@@ -84,7 +84,7 @@ void UART_Init(void)
 
 void UART_Tx(uint8_t d)
 {
-    while (!TXIF);              // Wait until TX ready
+    while (!PIR1bits.TXIF);     // Wait until TX ready
     TXREG = d;                  // Send data
 }
 
@@ -100,10 +100,10 @@ void UART_TxString(const char *s)
 
 uint8_t UART_Rx(void)
 {
-    if (OERR)                   // If overrun error (receiver full, unread data lost)
+    if (RCSTAbits.OERR)         // If overrun error (receiver full, unread data lost)
     {
-        CREN = 0;               // Reset continuous receive
-        CREN = 1;               // Re-enable receive
+        RCSTAbits.CREN = 0;     // Reset continuous receive
+        RCSTAbits.CREN = 1;     // Re-enable receive
     }
 
     return RCREG;               // Read received byte
@@ -142,7 +142,6 @@ void Timer2_Start(void)
    PIE1bits.TMR2IE = 1;        // enable Timer2 interrupt flag LAST
    Timer2_Timout = false;      // Clear flag boolean
    T2CONbits.TMR2ON = 1;       // start Timer2
-   
 }
 
 void Timer2_Stop(void)
@@ -181,8 +180,8 @@ uint16_t Flash_ReadWord(uint16_t address)
     EEADR  = address & 0xFF;            // low byte of address
     EEADRH = (address >> 8) & 0xFF;     // high byte of address
 
-    EEPGD = 1;                          // Select program memory type
-    RD    = 1;                          // initiate read
+    EECON1bits.EEPGD = 1;               // Select program memory type
+    EECON1bits.RD    = 1;               // initiate read
 
     NOP();                              // required
     NOP();
@@ -200,13 +199,13 @@ void Flash_WriteBlock(uint16_t address, uint16_t *data)
     uint16_t i;
 
     address &= 0xFFFC;                      // align to 4-word block
-    GIE = 0;                                // Disable interrupts
+    INTCONbits.GIE = 0;                     // Disable interrupts
             
     for (i = 0; i < FLASH_WRITE_BLOCK; i++) 
     {
-        EEPGD = 1;                          // Select program memory type
-        WREN  = 1;                          // Enable write
-        FREE  = 0;                          // Stop erase
+        EECON1bits.EEPGD = 1;               // Select program memory type
+        EECON1bits.WREN  = 1;               // Enable write
+        EECON1bits.FREE  = 0;               // Stop erase
         
         EEADR  = (address + i) & 0x00FF;    // Low byte address
         EEADRH = (address + i) >> 8;        // High byte address
@@ -218,14 +217,14 @@ void Flash_WriteBlock(uint16_t address, uint16_t *data)
         EECON2 = 0x55;                      // Unlock sequence
         EECON2 = 0xAA;
 
-        WR = 1;                             // Start write
-        while (WR);                         // wait until this word is written
+        EECON1bits.WR = 1;                  // Start write
+        while (EECON1bits.WR);              // wait until this word is written
         
         NOP();                              // Short delay required
         NOP();                 
     }
-    WREN = 0;                               // Disable writes
-    GIE = 1;                                // Enable interrupts
+    EECON1bits.WREN = 0;                    // Disable writes
+    INTCONbits.GIE = 1;                     // Enable interrupts
 }
 
 
@@ -289,27 +288,27 @@ void Flash_EraseApplication(void)
     // Application area: 0x0600 to 0xFFF 
     for (addr = FLASH_START; addr + FLASH_ERASE_BLOCK - 1 <= FLASH_END; addr += FLASH_ERASE_BLOCK) // step 32 words
     {
-        EEADR  = addr & 0xFF;     // Example 0x0800 Address Set will erase 0x0800 to 0x81F
+        EEADR  = addr & 0xFF;       // Example 0x0800 Address Set will erase 0x0800 to 0x81F
         EEADRH = addr >> 8;
 
-        EEPGD = 1;      // Select program memory type
-        WREN  = 1;      // Enable write
-        FREE  = 1;      // Enable erase
+        EECON1bits.EEPGD = 1;       // Select program memory type
+        EECON1bits.WREN  = 1;       // Enable write
+        EECON1bits.FREE  = 1;       // Enable erase
 
-        GIE = 0;        // Disable interrupts
+        INTCONbits.GIE = 0;         // Disable interrupts
         
-        EECON2 = 0x55;  // Unlock Sequence
+        EECON2 = 0x55;              // Unlock Sequence
         EECON2 = 0xAA;
         
-        WR = 1;         // Trigger erase
-        while (WR);     // wait until this word is written
+        EECON1bits.WR = 1;          // Trigger erase
+        while (EECON1bits.WR);      // wait until this word is written
 
-        NOP();          // Sequence Required
+        NOP();                      // Sequence Required
         NOP();
         
-        FREE = 0;       // Stop erase
-        WREN = 0;       // Stop write
-        GIE = 1;        // Enable interrupts
+        EECON1bits.FREE = 0;       // Stop erase
+        EECON1bits.WREN = 0;       // Stop write
+        INTCONbits.GIE = 1;        // Enable interrupts
     }
     
     // Send to host
