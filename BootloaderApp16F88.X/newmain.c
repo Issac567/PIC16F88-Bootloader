@@ -1,7 +1,7 @@
 /*
  * File:   newmain.c
  * Author: issac
- * Version: 1.01
+ * Version: 1.02
  * Created on January 18, 2026, 12:13 PM
  */
 
@@ -35,52 +35,50 @@ void UART_Init(void)
     // For FOSC = 8 MHz, desired baud = 57600:
     // SPBRG = (FOSC / (16 * Baud)) - 1
     // SPBRG = (8,000,000 / (16 * 57600)) - 1 ? 8
-    
-    // Using 57600 Baud!
-    
     SPBRG = 8;              // Set SPBRG for 57600 baud
-    BRGH  = 1;              // High-Speed baud
+    TXSTAbits.BRGH  = 1;    // High-Speed baud
 
     // Serial port enable
-    SYNC = 0;               // Asynchronous mode
-    SPEN = 1;               // Enable serial port
+    TXSTAbits.SYNC = 0;     // Asynchronous mode
+    RCSTAbits.SPEN = 1;     // Enables UART pins (RB2/RB5)
 
     // Transmission enable
-    TXEN = 1;               // Transmit enable
-    CREN = 1;               // Continuous receive enable
+    TXSTAbits.TXEN = 1;     // Transmit enable
+    RCSTAbits.CREN = 1;     // Continuous receive enable
 }
 
 uint8_t UART_Rx(void)
 {
-    if (OERR)                   // If overrun error (receiver full, unread data lost)
+    if (RCSTAbits.OERR)         // If overrun error (receiver full, unread data lost)
     {
-        CREN = 0;               // Reset continuous receive
-        CREN = 1;               // Re-enable receive
+        RCSTAbits.CREN = 0;     // Reset continuous receive
+        RCSTAbits.CREN = 1;     // Re-enable receive
     }
 
-    while (!RCIF);              // Wait until a byte is received
     return RCREG;               // Read received byte
 }
+
 
 // Write to EEPROM just one address to confirm on real hardware.
 void EEPROM_WriteByte(uint8_t address, uint8_t data) 
 {
     // Not used just keeping a template of it!
     
-    while (WR);             // Wait until previous write finishes
-    EEADR = address;        // Address to write
-    EEDATA = data;          // Data to write
-    EEPGD = 0;              // Select DATA EEPROM memory
-    WREN = 1;               // Enable write
+    while (EECON1bits.WR);              // Wait until previous write finishes
+    EEADR = address;                    // Address to write
+    EEDATA = data;                      // Data to write
+    EECON1bits.EEPGD = 0;               // Select DATA EEPROM memory
+    EECON1bits.WREN = 1;                // Enable write
     
     // Required sequence to unlock
-    GIE = 0;                // Disable interrupts
+    INTCONbits.GIE = 0;                 // Disable interrupts
     EECON2 = 0x55;
     EECON2 = 0xAA;
-    WR = 1;                 // Start write
+    EECON1bits.WR = 1;                  // Start write
+    while (EECON1bits.WR);              // Wait until previous write finishes
     
-    GIE = 1;                // Enable interrupts
-    WREN = 0;               // Disable write
+    INTCONbits.GIE = 1;                 // Enable interrupts
+    EECON1bits.WREN = 0;                // Disable write
 }
 
 void main(void) {
@@ -89,7 +87,10 @@ void main(void) {
     uint8_t b;                          // Application monitor 0x55 for bootloading
     LED_TRIS = 0;                       // Output
     UART_Init();                        // Init UART
-        
+    
+    //EEPROM_WriteByte(0x00, 0x55);
+    //EEPROM_WriteByte(0x01, 0x55);
+            
     while(1) 
     {
         // Flash Led for application.  Use different pin then bootloader.
