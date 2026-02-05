@@ -165,16 +165,13 @@ void __interrupt() ISR(void)
         {
             t2_counter = 0;                         // Reset it
             Timer2_Timout = true;                   // Set true for looper to detect flag
-            
-            UART_TxString("<ISR Timeout>");         // Send to host
-            __delay_ms(MSG_MS_DELAY);               // Must for B4J Newdata
         }
     }
 }
 
 
 //-------------------------------------------------------
-// READ AND WRITE PROGRAM CODE ROUTINE + READ EEPROM DATA
+// READ AND WRITE PROGRAM CODE ROUTINE
 //-------------------------------------------------------
 // READ FLASH DATA (1 Word)
 uint16_t Flash_ReadWord(uint16_t address)
@@ -439,6 +436,10 @@ void DoFirmwareUpdate(void)
             timeoutCount++;
             
             Timer2_Stop();
+            
+            UART_TxString("<ISR Timeout>");         // Send to host
+            __delay_ms(MSG_MS_DELAY);              
+            
                         
             // Exit after 3 consecutive timeouts
             if (timeoutCount >= 3)
