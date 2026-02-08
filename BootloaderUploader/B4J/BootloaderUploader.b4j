@@ -6,11 +6,12 @@ Group=Default Group
 Library1=b4xpages
 Library2=jcore
 Library3=jfx
-Library4=jserial
-Library5=jrandomaccessfile
+Library4=jrandomaccessfile
+Library5=jserial
+Library6=jshell
 Module1=B4XMainPage
 NumberOfFiles=1
-NumberOfLibraries=5
+NumberOfLibraries=6
 NumberOfModules=1
 Version=10
 @EndOfDesignText@
@@ -25,6 +26,7 @@ Sub Process_Globals
 End Sub
 
 Sub AppStart (Form1 As Form, Args() As String)
+	SetHighPriority
 	MainForm = Form1
 	MainForm.SetFormStyle("UTILITY")			' Better use UTILITY. Flashing requires App focus at all time or issues will rise
 	MainForm.Show
@@ -32,6 +34,33 @@ Sub AppStart (Form1 As Form, Args() As String)
 	PagesManager.Initialize(MainForm)
 End Sub
 
+' Add jShell library to your project
+Sub SetHighPriority
+	Dim sh As Shell
+	' This finds the PID of your current app and sets it to High
+	' "High" priority is better than "Realtime" because it won't lock your mouse/keyboard
+	sh.Initialize("sh", "cmd", Array("/c", "wmic process where name='java.exe' CALL setpriority 128"))
+	sh.Run(-1)
+	Log("Process priority set to HIGH")
+End Sub
+Sub CheckPriorityStatus
+	' Used to confirm if it in high priority!
+	Dim checkShl As Shell
+	' This command gets the numeric priority value
+	checkShl.Initialize("checkShl", "cmd", Array("/c", "wmic process where name='java.exe' get priority"))
+	checkShl.Run(-1)
+End Sub
+
+Sub checkShl_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As String, StdErr As String)
+	If Success Then
+		' High Priority returns a "13" in the priority field
+		If StdOut.Contains("13") Then
+			Log("High Priority Mode: ACTIVE")
+		Else
+			Log("Standard Priority Mode")
+		End If
+	End If
+End Sub
 'Template version: B4J-1.0
 #Region Delegates
 Sub MainForm_FocusChanged (HasFocus As Boolean)
