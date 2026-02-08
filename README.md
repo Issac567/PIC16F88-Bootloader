@@ -1,6 +1,6 @@
 # PIC16F88 UART Bootloader Project
 
-![PIC16F88 Bootloader Diagram](16F88_Image.png)
+![PIC16F88 Bootloader Diagram](16F88Image.png)
 
 This repository contains a **complete UART bootloader solution** for the **PIC16F88**, including:
 
