@@ -25,8 +25,6 @@ The goal of this project is to provide a clean, understandable reference impleme
 * **Programming Interface:** UART (via USB-to-TTL adapter)
 * **Target Voltage:** 5V
 
-![PIC16F88 Target Hardware](TargetHardware.png)
-
 ### LED Indicators
 
 | Function        | Port Pin |
