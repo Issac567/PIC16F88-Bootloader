@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.06
+ * Version: 1.08
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -261,13 +261,11 @@ void Verify_Flash(void)
             UART_Tx(packet[i] >> 8);                // Second Byte (MSB) Shift upper to lower
         }
 
-       // UART_TxString(">");                       // Not using this method anymore!!
-        
-        // Delay ~30 ms.  Do not use anything less.  PC B4J will not parse properly!
-        __delay_ms(30);
+        __delay_ms(10);                             // tested 1 ms ok!  as long below first delay is there!
     }
 
     // Send to host
+    __delay_ms(MSG_MS_DELAY);                       // Must do this delay first helps alot.  does not interfere with last packet sent! (tested with 1 ms delay above and works flawless!)
     UART_TxString("<EndVerifyFlash>");
     __delay_ms(MSG_MS_DELAY);
 }
@@ -327,9 +325,6 @@ bool ReceivePacket(void)
     uint8_t byteCount = 0;                      // counter
 
     RCSTAbits.CREN = 1;                         // make sure continuous receive enabled
-
-    // PC B4J need this for next packet receive
-    UART_TxString("<ACK>"); 
         
     while (byteCount < FLASH_WRITE_BLOCK * 2)   // 4 Word = Flash_write_Block * 2 = 8 bytes expected
     {
@@ -387,7 +382,10 @@ void DoFirmwareUpdate(void)
     {
         Timer2_Stop();                      // Reset timer2
         Timer2_Start();
-        
+ 
+        // PC B4J need this for next packet receive
+        UART_TxString("<ACK>"); 
+    
         if (ReceivePacket())                // Check packet 8 bytes total 4 word
         {
             
@@ -522,12 +520,12 @@ void main(void) {
     TIMER2_Init();                  // Init Timer2
     UART_Init();                    // Init Hardware UART   
     
-    WaitHandshake();                // wait for 0x55 0xAA (200 ms timeout then goto app))
+    WaitHandshake();                // wait for 0x55 0xAA (3s timeout then goto app))
     
     LED_PIN  = 0;                   // LED Off (bootloader led))
     
     asm("goto 0x600");              // If bootloader is not init from PC, then continue to application
     
     
-    // Good news is when bootloader  goes to 0x0600 and is invalid, causes pic to reset and main repeated over and over till handshake and flash success!
+    // Good news is when bootloader  goes to 0x0600 and is invalid, causes PIC to reset and main repeated over and over till handshake and flash success!
 }

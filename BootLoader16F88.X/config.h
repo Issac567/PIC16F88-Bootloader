@@ -9,7 +9,7 @@
 #define CONFIG_H
 
 // ===== CONFIG BITS =====
-#pragma config FOSC = INTOSCIO // Internal oscillator; RA6/OSC2/CLKO and RA7/OSC1/CLKI as I/O
+#pragma config FOSC = INTOSCIO  // Internal oscillator; RA6/OSC2/CLKO and RA7/OSC1/CLKI as I/O
 #pragma config WDTE = OFF       // Watchdog Timer disabled
 #pragma config PWRTE = ON       // Power-up Timer enabled
 #pragma config MCLRE = ON       // MCLR pin enabled
