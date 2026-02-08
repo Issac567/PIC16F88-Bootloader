@@ -31,8 +31,8 @@ The goal of this project is to provide a clean, understandable reference impleme
 | Bootloader LED  | `PORTB.4` |
 | Application LED | `PORTB.3` |
 
-* **PORTB.3** always on or indicates when the **bootloader** is active  
-* **PORTB.4** blinks and is controlled by the **application firmware**
+* **PORTB.4** always on or indicates when the **bootloader** is active  
+* **PORTB.3** blinks and is controlled by the **application firmware**
 
 ---
 
