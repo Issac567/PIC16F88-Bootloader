@@ -13,6 +13,9 @@ The goal of this project is to provide a clean, understandable reference impleme
 
 ## 📂 Repository Structure
 
+* `/BootLoader16F88.X`      → MPLAB X Bootloader firmware  
+* `/BootloaderApp16F88.X`   → MPLAB X Application firmware  
+* `/BootloaderUploader/B4J` → B4J PC uploader tool
 
 ---
 
