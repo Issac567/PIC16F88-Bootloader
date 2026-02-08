@@ -140,8 +140,7 @@ Typical UART wiring using a USB-to-TTL adapter:
 
 ---
 
-![PIC16F88 Bootloader Diagram](/PIC16F88-Bootloader
-/16F88 Image.png)
+![PIC16F88 Bootloader Diagram](/PIC16F88-Bootloader/16F88 Image.png)
 
 ---
 
