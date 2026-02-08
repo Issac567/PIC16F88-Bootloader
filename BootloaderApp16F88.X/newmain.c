@@ -1,7 +1,7 @@
 /*
  * File:   newmain.c
  * Author: issac
- * Version: 1.02
+ * Version: 1.03
  * Created on January 18, 2026, 12:13 PM
  */
 
