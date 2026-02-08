@@ -1,5 +1,7 @@
 # PIC16F88 UART Bootloader Project
 
+![PIC16F88 Bootloader Diagram](16F88_Image.png)
+
 This repository contains a **complete UART bootloader solution** for the **PIC16F88**, including:
 
 * MPLAB X firmware projects (bootloader + application)
@@ -7,17 +9,10 @@ This repository contains a **complete UART bootloader solution** for the **PIC16
 
 The goal of this project is to provide a clean, understandable reference implementation of a PIC16F88 bootloader with a PC-side uploader.
 
-![PIC16F88 Bootloader Diagram](16F88%20Image.png)
-
 ---
 
 ## 📂 Repository Structure
 
-```
-/BootLoader16F88.X        → MPLAB X Bootloader firmware
-/BootloaderApp16F88.X    → MPLAB X Application firmware
-/BootloaderUploader/B4J  → B4J PC uploader tool
-```
 
 ---
 
@@ -27,39 +22,35 @@ The goal of this project is to provide a clean, understandable reference impleme
 * **Programming Interface:** UART (via USB-to-TTL adapter)
 * **Target Voltage:** 5V
 
+![PIC16F88 Target Hardware](TargetHardware.png)
+
 ### LED Indicators
 
 | Function        | Port Pin |
 | --------------- | -------- |
-| Bootloader LED  | PORTB.4  |
-| Application LED | PORTB.3  |
+| Bootloader LED  | `PORTB.4` |
+| Application LED | `PORTB.3` |
 
-* **PORTB.3** always on or indicates when the **bootloader** is active
+* **PORTB.3** always on or indicates when the **bootloader** is active  
 * **PORTB.4** blinks and is controlled by the **application firmware**
 
 ---
 
 ## 🧠 MPLAB X Projects
-I use version MPLAB X IDE 6.05 (supports Pickit 3/3.5 if using this!)
+I use **MPLAB X IDE 6.05** (supports Pickit 3/3.5 if using this!)
 
 ### 1️⃣ BootLoader16F88.X (Bootloader)
 [MPLAB Ecosystem – Microchip](https://www.microchip.com/en-us/tools-resources/archives/mplab-ecosystem)
-
-Start MPLAB X IDE and right click Loadables -> Add Loadables Project -> Choose BootloaderApp16F88.X Folder. 
-Right click BootLoader16F88 in Projects and set as Main Project.
 
 * Resides at the lower program memory
 * Initializes UART communication
 * Waits for commands from the PC uploader
 * Supports:
-
   * Flash erase (32 word max)
   * Application programming (4 word max)
   * Flash verification
 * Provides visual status using **PORTB.4 LED**
 * Jumps to application if no bootloader request is detected
-
----
 
 ### 2️⃣ BootloaderApp16F88.X (Application)
 
@@ -73,26 +64,24 @@ Right click BootLoader16F88 in Projects and set as Main Project.
 ## 🖥️ B4J Bootloader Uploader
 [B4J – B4X](https://www.b4x.com/b4j.html)
 
-The B4J project is a **PC-side bootloader uploader tool**.
-
 ### Libraries required
+
 * jRandomAccess
 * jSerial
 * jFX
 * B4XPages
-  
+
 ### Features
 
 * Parses **Intel HEX** firmware files
 * Communicates with the PIC over UART
 * Supports:
-
   * **Erase** application flash
   * **Flash** application firmware
   * **Verify** programmed data
 * Handles word-addressed PIC flash correctly
 * Designed specifically for PIC16F88 bootloader protocol
-* Load Firmware BootloaderApp16F88.X Intel Hex file under dist -> default -> production -> BootloaderApp16F88.X.production.hex
+* Load Firmware `BootloaderApp16F88.X.production.hex` under `dist/default/production/`
 
 ---
 
@@ -101,19 +90,15 @@ The B4J project is a **PC-side bootloader uploader tool**.
 1. PIC powers up
 2. Bootloader checks for PC communication
 3. If detected:
-
    * Enters bootloader mode
    * Accepts erase / flash / verify commands
 4. If not detected:
-
    * Jumps to application
 5. Application runs and toggles **PORTB.3 LED**
 
 ---
 
 ## 🔌 Pin Connections
-
-Simple wiring for PIC16F88 with power, MCLR, bootloader LED, application LED, and UART‑to‑TTL USB.
 
 | PIC16F88 Pin | Connection                      | Notes                    |
 |-------------|---------------------------------|--------------------------|
@@ -130,13 +115,11 @@ Simple wiring for PIC16F88 with power, MCLR, bootloader LED, application LED, an
 
 ## 🔌 UART Connection
 
-Typical UART wiring using a USB-to-TTL adapter:
-
 | USB-TTL | PIC16F88 |
 | ------- | -------- |
-| TX      | RX       |
-| RX      | TX       |
-| GND     | VSS      |
+| **TX**  | RX       |
+| **RX**  | TX       |
+| **GND** | VSS      |
 
 > ⚠️ Ensure logic levels are **5V compatible**
 
@@ -167,6 +150,6 @@ Open-source. Use, modify, and learn from it freely.
 
 ## ✨ Author
 
-Issac
+Issac  
 
 Enjoy hacking the PIC16F88 🚀
