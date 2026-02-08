@@ -7,6 +7,8 @@ This repository contains a **complete UART bootloader solution** for the **PIC16
 
 The goal of this project is to provide a clean, understandable reference implementation of a PIC16F88 bootloader with a PC-side uploader.
 
+![PIC16F88 Bootloader Diagram](16F88%20Image.png)
+
 ---
 
 ## 📂 Repository Structure
@@ -137,10 +139,6 @@ Typical UART wiring using a USB-to-TTL adapter:
 | GND     | VSS      |
 
 > ⚠️ Ensure logic levels are **5V compatible**
-
----
-
-![PIC16F88 Bootloader Diagram](16F88%20Image.png)
 
 ---
 
