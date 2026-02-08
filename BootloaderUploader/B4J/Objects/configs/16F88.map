@@ -1,0 +1,9 @@
+#Fri Feb 06 21:58:55 PST 2026
+EndAddrFlash=4095
+HandShakeDelayMS=200
+MSBWordAddr=63
+PacketDelayMS=4
+PicName=16F88
+StartAddrFlash=1536
+UseWriteBurst=false
+WordsPerPacket=4
