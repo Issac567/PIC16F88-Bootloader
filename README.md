@@ -99,7 +99,7 @@ I use **MPLAB X IDE 6.05** (supports Pickit 3/3.5 if using this!)
 
 ---
 
-## 🔌 Pickit3/3.5 Diagram
+## 🔌 Pickit 3/3.5 Diagram
 
 ![PIC16F88 Pickit Diagram](Pickit3.png)
 
