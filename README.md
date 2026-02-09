@@ -135,7 +135,7 @@ I use **MPLAB X IDE 6.05** (supports Pickit 3/3.5 if using this!)
 ## 🧪 Tested Setup
 
 * PIC16F88
-* USB-to-TTL serial adapter
+* USB-to-TTL serial adapter [Aliexpress](https://www.aliexpress.us/w/wholesale-USB%2525252dto%2525252dTTL-serial-adapter.html?spm=a2g0o.productlist.search.0)
 * MPLAB X IDE [MPLAB Ecosystem – Microchip](https://www.microchip.com/en-us/tools-resources/archives/mplab-ecosystem)
 * B4J (Anywhere Software) [B4J – B4X](https://www.b4x.com/b4j.html)
 
