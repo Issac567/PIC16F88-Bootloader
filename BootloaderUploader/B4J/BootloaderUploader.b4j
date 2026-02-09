@@ -7,17 +7,18 @@ Library1=b4xpages
 Library2=jcore
 Library3=jfx
 Library4=jrandomaccessfile
-Library5=jserial
-Library6=jshell
+Library5=jshell
+Library6=jserial
 Module1=B4XMainPage
 NumberOfFiles=1
 NumberOfLibraries=6
 NumberOfModules=1
-Version=10
+Version=10.3
 @EndOfDesignText@
 #Region Project Attributes 
 	#MainFormWidth: 600
 	#MainFormHeight: 600 
+	#CustomBuildAction: After Packager, %WINDIR%\System32\robocopy.exe, ..\ temp\build\bin\ jssc.dll
 #End Region
 
 Sub Process_Globals
@@ -50,7 +51,6 @@ Sub CheckPriorityStatus
 	checkShl.Initialize("checkShl", "cmd", Array("/c", "wmic process where name='java.exe' get priority"))
 	checkShl.Run(-1)
 End Sub
-
 Sub checkShl_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As String, StdErr As String)
 	If Success Then
 		' High Priority returns a "13" in the priority field
@@ -61,6 +61,7 @@ Sub checkShl_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As St
 		End If
 	End If
 End Sub
+
 'Template version: B4J-1.0
 #Region Delegates
 Sub MainForm_FocusChanged (HasFocus As Boolean)

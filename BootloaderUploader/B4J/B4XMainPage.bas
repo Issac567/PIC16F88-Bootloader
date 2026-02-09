@@ -5,7 +5,7 @@ Type=Class
 Version=9.85
 @EndOfDesignText@
 
-'VERSION 2.01
+'VERSION 2.03
 
 'Ctrl + click to export as zip: ide://run?File=%B4X%\Zipper.jar&Args=Project.zip
 
@@ -40,7 +40,7 @@ Sub Class_Globals
 	Private firmwareVerify() As Byte						' firmware binary from PIC
 	Private cntVerify As Int								' Counter detection of incoming bytes from PIC
 	Private blnProgrammingInProgress As Boolean				' For exit app msgbox while flashing
-	Private blnVerifyRequest As Boolean						' <StartVerifyFlash> from PIC
+	Private blnVerifyRequest As Boolean						' <StartFlashVerify> from PIC
 	Private blnHandShakeSuccess As Boolean					' <InitReceived> from PIC
 	Private blnExitTimeoutError As Boolean					' <TimeoutError> from PIC
 	Private blnAppExitAstreamError	As Boolean				' Astream error exit loop from app
@@ -78,7 +78,7 @@ Private Sub B4XPage_Created (Root1 As B4XView)
 	For Each name As String In getList
 		cmbPicList.Items.Add(name)
 	Next
-	
+		
 	' Set prompt text for combo box
 	Dim jo As JavaObject = cmbPort
 	jo.RunMethod("setPromptText", Array("Choose Port"))
@@ -178,13 +178,13 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 			LogMessage("Status", "Timeout exiting bootloader --> entering application.")
 			
 		' Start of verify flash program code
-		Case "<StartVerifyFlash>"
+		Case "<StartFlashVerify>"
 			cntVerify = 0
 			blnVerifyRequest = True
 			LogMessage("Status", "Waiting for Verification...")
 			
 		' End of verify flash program code
-		Case "<EndVerifyFlash>"
+		Case "<EndFlashVerify>"
 			EnableFunction
 			VerifyStatus
 			
@@ -198,7 +198,7 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 			blnACK = True
 			
 		Case Else
-			' This is triggered by <StartVerifyFlash> from PIC after Flash Write is completed
+			' This is triggered by <StartFlashVerify> from PIC after Flash Write is completed
 			If blnVerifyRequest = True Then
 				'LogMessage("Incoming", BytesToHexString(buffer))  ' debugging only!!!
 								
@@ -212,7 +212,7 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 					
 					' Check if we reached the expected firmware size
 					If cntVerify >= ExpectedFirmwareBytes Then
-						' Let <EndVerifyFlash> display the status of Verify!
+						' Let <EndFlashVerify> display the status of Verify!
 						' Just enable button here
 						EnableFunction
 						Exit
@@ -480,13 +480,19 @@ Sub SendFirmware
 		'Reset this
 		blnACK = False
 		
-		' Send each byte with minimum 2 ms delay
-		For x = 0 To BlockSize - 1
-			Dim b(1) As Byte       				' single-byte array
-			b(0) = block(x)        				' copy current byte
-			astream.Write(b)       				' send the byte
-			Sleep(PacketDelayMS) 			   	' small delay between bytes
-		Next
+		If UseWriteBurst = False Then 
+			' Send each byte with minimum 2 ms delay
+			For x = 0 To BlockSize - 1
+				Dim b(1) As Byte       				' single-byte array
+				b(0) = block(x)        				' copy current byte
+				astream.Write(b)       				' send the byte
+				Sleep(PacketDelayMS) 			   	' small delay between bytes
+			Next
+		Else
+			' Send burst of data blocks (not tested yet!)
+			astream.Write(block)
+			Sleep(PacketDelayMS)
+		End If
 		
 		' Update progress bar
 		prgBar.Progress = Min(1, (i + BlockSize) / firmware.Length)
@@ -663,6 +669,7 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 						LogMessage(":::", "Unimplemented Memory = 0x" & Bit.ToHexString(MSBWordAddr).ToUpperCase)
 						LogMessage(":::", "HandShake Delay = " & HandShakeDelayMS & " ms")
 						LogMessage(":::", "Packet Delay = " & PacketDelayMS & "ms")
+						LogMessage(":::", "Write Burst = " & UseWriteBurst)
 						
 						LogMessage("", "Block Write Size = " & (BlockSize/2) & " word (" & BlockSize & " bytes)")
 						LogMessage("", "Expected Firmware Size = " & (ExpectedFirmwareBytes/2) & " word (" & ExpectedFirmwareBytes & " bytes)")
