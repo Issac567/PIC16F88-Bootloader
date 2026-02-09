@@ -5,7 +5,7 @@ Type=Class
 Version=9.85
 @EndOfDesignText@
 
-'VERSION 2.03
+' VERSION 2.05
 ' Using .Exe from Build Standalone Package you must include the .map files in 
 ' \BootloaderUploader\Objects\temp\build\bin\configs
 
@@ -163,66 +163,65 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 		LogMessage("PIC", msg)
 	End If
 	
-	Select Case msg
-		' 0x55 and 0xAA received by PIC
-		Case "<InitReceived>"
-			blnHandShakeSuccess = True
-			LogMessage("Status", "PIC responded! Done sending 0x55 0xAA")
+	' 0x55 and 0xAA received by PIC
+	If msg.Contains("<InitReceived>") Then
+		blnHandShakeSuccess = True
+		LogMessage("Status", "PIC responded! Done sending 0x55 0xAA")
 			
-		' Timeout 3 times = error by PIC
-		Case "<ErrorTimeout>"
-			blnExitTimeoutError = True
-			EnableFunction
-			LogMessage("Status", "PIC reported timeout error, try again")
-			
-		' 3 seconds timeout.  if no handshake it will enter application
-		Case "<HandShakeTimeout>"
-			LogMessage("Status", "Timeout exiting bootloader --> entering application.")
-			
-		' Start of verify flash program code
-		Case "<StartFlashVerify>"
-			cntVerify = 0
-			blnVerifyRequest = True
-			LogMessage("Status", "Waiting for Verification...")
-			
-		' End of verify flash program code
-		Case "<EndFlashVerify>"
-			EnableFunction
-			VerifyStatus
-			
-		' End of Erase Flash. When Pic send this delay a bit and start the flash upload
-		Case "<EndFlashErase>"
-			Sleep(200)
-			SendFirmware
+	' Timeout 3 times = error by PIC
+	Else If msg.Contains("<ErrorTimeout>") Then
+		blnExitTimeoutError = True
+		EnableFunction
+		LogMessage("Status", "PIC reported timeout error, try again")
 		
-		' B4J expects <ACK> from PIC so it sends next packets in Firmware Upload routine
-		Case "<ACK>"
-			blnACK = True
+	' 3 seconds timeout.  if no handshake it will enter application
+	Else If msg.Contains("<HandShakeTimeout>") Then
+		LogMessage("Status", "Timeout exiting bootloader --> entering application.")
+		
+	' Start of verify flash program code
+	Else If msg.Contains("<StartFlashVerify>") Then
+		cntVerify = 0
+		blnVerifyRequest = True
+		LogMessage("Status", "Waiting for Verification...")
+		
+	' End of verify flash program code
+	Else If msg.Contains("<EndFlashVerify>") Then
+		EnableFunction
+		VerifyStatus
+		
+	' End of Erase Flash. When Pic send this delay a bit and start the flash upload
+	Else If msg.Contains("<EndFlashErase>") Then
+		Sleep(200)
+		SendFirmware
+	
+	' B4J expects <ACK> from PIC so it sends next packets in Firmware Upload routine
+	Else If msg.Contains("<ACK>")  Then
+		blnACK = True
 			
-		Case Else
-			' This is triggered by <StartFlashVerify> from PIC after Flash Write is completed
-			If blnVerifyRequest = True Then
-				'LogMessage("Incoming", BytesToHexString(buffer))  ' debugging only!!!
-								
-				For x = 0 To buffer.Length - 1  ' This method is better.  Newdata does not guarantee all block in one event
-					' This array will compare to firmware() which is Converted FILE binary
-					firmwareVerify(cntVerify) = buffer(x)
-										
-					' Update progress bar
-					prgBar.Progress = Min(1, cntVerify / ExpectedFirmwareBytes)
-					cntVerify = cntVerify + 1
-					
-					' Check if we reached the expected firmware size
-					If cntVerify >= ExpectedFirmwareBytes Then
-						' Let <EndFlashVerify> display the status of Verify!
-						' Just enable button here
-						EnableFunction
-						Exit
-					End If
-				Next
-			End If
+	Else
+		' This is triggered by <StartFlashVerify> from PIC after Flash Write is completed
+		If blnVerifyRequest = True Then
+			'LogMessage("Incoming", BytesToHexString(buffer))  ' debugging only!!!
+							
+			For x = 0 To buffer.Length - 1  ' This method is better.  Newdata does not guarantee all block in one event
+				' This array will compare to firmware() which is Converted FILE binary
+				firmwareVerify(cntVerify) = buffer(x)
+									
+				' Update progress bar
+				prgBar.Progress = Min(1, cntVerify / ExpectedFirmwareBytes)
+				cntVerify = cntVerify + 1
+				
+				' Check if we reached the expected firmware size
+				If cntVerify >= ExpectedFirmwareBytes Then
+					' Let <EndFlashVerify> display the status of Verify!
+					' Just enable button here
+					EnableFunction
+					Exit
+				End If
+			Next
+		End If
+	End If
 			
-	End Select
 End Sub
 Sub AStream_Error
 	LogMessage("Status", "Error: " & LastException)
@@ -720,5 +719,4 @@ Sub BytesToHexString2(b As Byte) As String
 	
 	Return byteString.ToUpperCase
 End Sub
-
 
