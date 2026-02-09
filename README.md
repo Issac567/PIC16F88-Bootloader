@@ -68,7 +68,7 @@ I use **MPLAB X IDE 6.05** (supports Pickit 3/3.5 if using this!)
 ### Libraries required
 
 * jRandomAccess
-* jSerial
+* jSerial v1.40
 * jFX
 * B4XPages
 
