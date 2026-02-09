@@ -621,9 +621,7 @@ Sub LoadAllPicNames() As List
 End Sub
 Sub LoadConfiguration(SelectedPicName As String) As Boolean
 	Dim cfgDir As String = File.Combine(File.DirApp, "configs")
-	Dim picList As List
-	picList.Initialize
-    
+
 	' Make sure folder exists
 	If File.Exists(File.DirApp, "configs") = False Then
 		Return False
@@ -719,5 +717,6 @@ Sub BytesToHexString2(b As Byte) As String
 	
 	Return byteString.ToUpperCase
 End Sub
+
 
 
