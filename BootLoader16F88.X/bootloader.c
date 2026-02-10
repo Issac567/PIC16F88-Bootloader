@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.08
+ * Version: 1.10
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -138,9 +138,9 @@ void Timer2_Start(void)
    PIR1bits.TMR2IF = 0;        // clear pending interrupt FIRST
    t2_counter = 0;             // reset ISR counter
    TMR2 = 0;                   // reset File Register counter
-
-   PIE1bits.TMR2IE = 1;        // enable Timer2 interrupt flag LAST
    Timer2_Timout = false;      // Clear flag boolean
+   
+   PIE1bits.TMR2IE = 1;        // enable Timer2 interrupt flag
    T2CONbits.TMR2ON = 1;       // start Timer2
 }
 
@@ -148,9 +148,11 @@ void Timer2_Stop(void)
 {
     t2_counter = 0;             // reset ISR counter
     TMR2 = 0;                   // reset counter
+    Timer2_Timout = false;      // Clear flag boolean
+    
     PIE1bits.TMR2IE = 0;        // Disable Timer2 interrupt flag
     T2CONbits.TMR2ON = 0;       // Stop Timer2
-    Timer2_Timout = false;      // Clear flag boolean
+
 }
 
 void __interrupt() ISR(void)
@@ -240,7 +242,7 @@ void Verify_Flash(void)
     Timer2_Stop();                  
 
     // Send to host
-    UART_TxString("<StartVerifyFlash>");
+    UART_TxString("<StartFlashVerify>");
     __delay_ms(MSG_MS_DELAY);
     
     // Loop through all flash from start to end
@@ -266,7 +268,7 @@ void Verify_Flash(void)
 
     // Send to host
     __delay_ms(MSG_MS_DELAY);                       // Must do this delay first helps alot.  does not interfere with last packet sent! (tested with 1 ms delay above and works flawless!)
-    UART_TxString("<EndVerifyFlash>");
+    UART_TxString("<EndFlashVerify>");
     __delay_ms(MSG_MS_DELAY);
 }
 
@@ -327,14 +329,7 @@ bool ReceivePacket(void)
     RCSTAbits.CREN = 1;                         // make sure continuous receive enabled
         
     while (byteCount < FLASH_WRITE_BLOCK * 2)   // 4 Word = Flash_write_Block * 2 = 8 bytes expected
-    {
-        // Handle overrun
-        if (RCSTAbits.OERR) 
-        {
-            RCSTAbits.CREN = 0;
-            RCSTAbits.CREN = 1;
-        }
-
+    {    
         // Timeout check
         if (Timer2_Timout)
         {
@@ -344,7 +339,7 @@ bool ReceivePacket(void)
         // Wait for a byte to be received
         if (PIR1bits.RCIF)                  // RCIF = 1 when RCREG has new byte
         {
-            temp[byteCount] = RCREG;        // MSB first then LSB from B4J binary
+            temp[byteCount] = UART_Rx();
             
             byteCount++;                    // Increment counter
             
@@ -469,12 +464,6 @@ void WaitHandshake(void) {
     
     while (!Timer2_Timout)
     {
-        if (RCSTAbits.OERR)             // If overrun
-        {
-            RCSTAbits.CREN = 0;         // Clears overrun error
-            RCSTAbits.CREN = 1;         // Enable continuous reception
-        }
-       
         if(PIR1bits.RCIF)               // UART receive interrupt flag set (data received in RCREG)
         {
             curr = UART_Rx();
