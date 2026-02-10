@@ -1,7 +1,7 @@
 /*
  * File:   newmain.c
  * Author: issac
- * Version: 1.03
+ * Version: 1.04
  * Created on January 18, 2026, 12:13 PM
  */
 
@@ -98,14 +98,7 @@ void main(void) {
         __delay_ms(500);                // Wait 500 ms
         LED_PIN = 0;                    // LED OFF
         __delay_ms(500);                // Wait 500 ms
-        
-        // UART
-        if (RCSTAbits.OERR)             // If overrun
-        {
-            RCSTAbits.CREN = 0;         // Clears overrun error
-            RCSTAbits.CREN = 1;         // Enable continuous reception
-        }
-       
+            
         if (PIR1bits.RCIF)              // PIR1bits.RCIF = 1 ? at least one byte in RCREG
         {
             b = UART_Rx();
