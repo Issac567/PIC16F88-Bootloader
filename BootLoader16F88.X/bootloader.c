@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.10
+ * Version: 1.11
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -326,7 +326,7 @@ bool ReceivePacket(void)
     uint8_t temp[FLASH_WRITE_BLOCK * 2];        // Variable to hold packet received (8 bytes expected)
     uint8_t byteCount = 0;                      // counter
 
-    RCSTAbits.CREN = 1;                         // make sure continuous receive enabled
+    //RCSTAbits.CREN = 1;                         // make sure continuous receive enabled
         
     while (byteCount < FLASH_WRITE_BLOCK * 2)   // 4 Word = Flash_write_Block * 2 = 8 bytes expected
     {    
@@ -343,8 +343,8 @@ bool ReceivePacket(void)
             
             byteCount++;                    // Increment counter
             
-            Timer2_Stop();                  // Reset timer2 
-            Timer2_Start();
+            //Timer2_Stop();                  // Reset timer2 
+            //Timer2_Start();
             
         }
         // else: just loop until RCIF=1 or timeout
