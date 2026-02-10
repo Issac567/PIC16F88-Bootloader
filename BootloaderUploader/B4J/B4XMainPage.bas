@@ -5,7 +5,7 @@ Type=Class
 Version=9.85
 @EndOfDesignText@
 
-' VERSION 2.04
+' VERSION 2.10
 ' Using .Exe from Build Standalone Package you must include the .map files in 
 ' \BootloaderUploader\Objects\temp\build\bin\configs
 
@@ -18,7 +18,9 @@ Sub Class_Globals
 	Private WordsPerPacket As Int
 	Private PacketDelayMS As Int
 	Private HandShakeDelayMS As Int
-	Private UseWriteBurst  As Boolean						' Not ready
+	Private UseWriteBurst  As Boolean					
+	Private StopBit As Int = 1								' Default
+	Private Notes As String 
 	
 	Private ExpectedFirmwareBytes As Int
 	Private BlockSize As Int
@@ -50,7 +52,7 @@ Sub Class_Globals
 	Private blnACK As Boolean								' <ACK> from PIC used in Firmware Upload.  Needs this <ACK> from PIC to continue next Block Write bytes
 	
 	Private rxBufferString As String						' Buffer Newdata in string format
-	Private rxBuffer() As Byte								' Buffer Newdata in byte format 
+	Private rxBufferByte() As Byte							' Buffer Newdata in byte format 
 
 	Private LastFilePath As String							' Reloads firmware from FILE when PIC name changed so Firmware array be corrected
 	
@@ -121,14 +123,14 @@ Sub AStream_NewData (Buffer() As Byte)
 	rxBufferString = rxBufferString & BytesToString(Buffer, 0, Buffer.Length, "UTF8") 
 	
 	' Append raw bytes for verfiy firmware (stricktly bytes only!)
-	rxBuffer = AppendBytes(rxBuffer, Buffer)
+	rxBufferByte = AppendBytes(rxBufferByte, Buffer)
 
 	' PIC sends with > as last byte to confirm end of message or bytes
 	' When VerifyRequest = true, it does not received ">". Sticktly bytes only!
 	If rxBufferString.Contains(">") Or blnVerifyRequest = True Then
-		HandleMessage(rxBufferString, rxBuffer)
+		HandleMessage(rxBufferString, rxBufferByte)
 		rxBufferString = ""
-		rxBuffer = Array As Byte() ' Resets to an empty array (length 0)
+		rxBufferByte = Array As Byte() ' Resets to an empty array (length 0)
 	End If
 	
 End Sub
@@ -257,7 +259,7 @@ Private Sub btnOpen_Click
 	If btnOpen.Text = "Open Port" Then
 		Try
 			serial1.Open(cmbPort.Value)
-			serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, serial1.STOPBITS_1, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, 1 stop bit, no parity
+			serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, StopBit, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, config value, no parity
 			astream.Initialize(serial1.GetInputStream, serial1.GetOutputStream, "astream")
 		Catch
 			LogMessage("Status", "Error Open Port" & LastException)
@@ -481,7 +483,7 @@ Sub SendFirmware
 		'Reset this
 		blnACK = False
 		
-		If UseWriteBurst = False Then 
+		If UseWriteBurst = False Then 				
 			' Send each byte with minimum 2 ms delay
 			For x = 0 To BlockSize - 1
 				Dim b(1) As Byte       				' single-byte array
@@ -620,13 +622,13 @@ Sub LoadAllPicNames() As List
 	Return picList
 End Sub
 Sub LoadConfiguration(SelectedPicName As String) As Boolean
-	Dim cfgDir As String = File.Combine(File.DirApp, "configs")
-
 	' Make sure folder exists
 	If File.Exists(File.DirApp, "configs") = False Then
 		Return False
 	End If
-    
+	
+	Dim cfgDir As String = File.Combine(File.DirApp, "configs")
+	
 	' Get all files in configs folder
 	Dim files As List = File.ListFiles(cfgDir)
     
@@ -645,7 +647,9 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 						PacketDelayMS = cfg.Get("PacketDelayMS")		' Write Block Packet Delay
 						HandShakeDelayMS = cfg.Get("HandShakeDelayMS")	' Handshake Delay
 						MSBWordAddr = cfg.Get("MSBWordAddr")			' 14 bit word address MSB
-						UseWriteBurst = cfg.Get("UseWriteBurst")
+						UseWriteBurst = cfg.Get("UseWriteBurst")		' No delays in between bytes if True!
+						StopBit = cfg.Get("StopBit")					' 1 or 2 stop bits, older pic need 2 so it buys time in while loop
+						Notes = cfg.Get("Notes")						' Special Notes
 						
 						BlockSize = WordsPerPacket * 2					' eg. 4 words = 8 bytes per Write block
 						ExpectedFirmwareBytes = (EndAddrFlash - StartAddrFlash + 1) * 2
@@ -654,21 +658,28 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 						firmwareVerify = Array As Byte()
 						Dim temp(ExpectedFirmwareBytes) As Byte
 						firmwareVerify = temp
-						
+		
 						' Make sure reload the Intel Hex file to new Firmware() array
 						If LastFilePath <> "" Then
 							firmware = ConvertHexIntelToBinaryRange(LastFilePath, StartAddrFlash)
 						End If
 						
+						' If port already open change stop bit!
+						If btnOpen.Text = "Close Port" Then
+							serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, StopBit, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, config value, no parity
+						End If
+						
 						LogMessage("", "---------------------------------------------------------")
 						LogMessage("", "CONFIGURATION FOR " & CheckName)
 						LogMessage("", "---------------------------------------------------------")
+						LogMessage("", "Notes: " & Notes)
 						LogMessage(":::", "Start Address = 0x" & Bit.ToHexString(StartAddrFlash).ToUpperCase)
 						LogMessage(":::", "End Address = 0x" & Bit.ToHexString(EndAddrFlash).ToUpperCase)
 						LogMessage(":::", "Unimplemented Memory = 0x" & Bit.ToHexString(MSBWordAddr).ToUpperCase)
 						LogMessage(":::", "HandShake Delay = " & HandShakeDelayMS & " ms")
 						LogMessage(":::", "Packet Delay = " & PacketDelayMS & "ms")
 						LogMessage(":::", "Write Burst = " & UseWriteBurst)
+						LogMessage(":::", "Stop Bit = " & StopBit)
 						
 						LogMessage("", "Block Write Size = " & (BlockSize/2) & " word (" & BlockSize & " bytes)")
 						LogMessage("", "Expected Firmware Size = " & (ExpectedFirmwareBytes/2) & " word (" & ExpectedFirmwareBytes & " bytes)")
@@ -717,6 +728,4 @@ Sub BytesToHexString2(b As Byte) As String
 	
 	Return byteString.ToUpperCase
 End Sub
-
-
 
