@@ -5,32 +5,42 @@ Type=Class
 Version=9.85
 @EndOfDesignText@
 
-' VERSION 2.10
+' VERSION 2.11
 ' Using .Exe from Build Standalone Package you must include the .map files in 
 ' \BootloaderUploader\Objects\temp\build\bin\configs
 
 'Ctrl + click to export as zip: ide://run?File=%B4X%\Zipper.jar&Args=Project.zip
 
 Sub Class_Globals
-	Private StartAddrFlash As Int 
-	Private EndAddrFlash   As Int
-	Private MSBWordAddr As Int
-	Private WordsPerPacket As Int
-	Private PacketDelayMS As Int
-	Private HandShakeDelayMS As Int
-	Private UseWriteBurst  As Boolean					
-	Private StopBit As Int = 1								' Default
-	Private Notes As String 
 	
-	Private ExpectedFirmwareBytes As Int
-	Private BlockSize As Int
+	'---------------------------------------
+	' Map Config Variables
+	'---------------------------------------
+	Private intStartAddrFlash As Int 
+	Private intEndAddrFlash   As Int
+	Private intMSBWordAddr As Int
+	Private intWordsPerPacket As Int
+	Private intPacketDelayMS As Int
+	Private intHandShakeDelayMS As Int
+	Private blnUseWriteBurst  As Boolean					
+	Private intStopBit As Int = 1							' Default
+	Private strNotes As String 
+	
+	Private intExpectedFirmwareBytes As Int
+	Private intBlockSize As Int
 
+	'---------------------------------------
+	' jSerial Library + Astream
+	'---------------------------------------
 	Private serial1 As Serial								' UART COM
 	Private astream As AsyncStreams							' Read/Write Stream
 	
 	Private Root As B4XView
 	Private xui As XUI
 	
+	'---------------------------------------
+	' UI Elements
+	'---------------------------------------
 	Private btnFlash As Button
 	Private btnLoadFile As Button
 	Private btnOpen As Button
@@ -54,7 +64,7 @@ Sub Class_Globals
 	Private rxBufferString As String						' Buffer Newdata in string format
 	Private rxBufferByte() As Byte							' Buffer Newdata in byte format 
 
-	Private LastFilePath As String							' Reloads firmware from FILE when PIC name changed so Firmware array be corrected
+	Private strLastFilePath As String						' Reloads firmware from FILE when PIC name changed so Firmware array be corrected
 	
 
 End Sub
@@ -210,11 +220,11 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 				firmwareVerify(cntVerify) = buffer(x)
 									
 				' Update progress bar
-				prgBar.Progress = Min(1, cntVerify / ExpectedFirmwareBytes)
+				prgBar.Progress = Min(1, cntVerify / intExpectedFirmwareBytes)
 				cntVerify = cntVerify + 1
 				
 				' Check if we reached the expected firmware size
-				If cntVerify >= ExpectedFirmwareBytes Then
+				If cntVerify >= intExpectedFirmwareBytes Then
 					' Let <EndFlashVerify> display the status of Verify!
 					' Just enable button here
 					EnableFunction
@@ -259,7 +269,7 @@ Private Sub btnOpen_Click
 	If btnOpen.Text = "Open Port" Then
 		Try
 			serial1.Open(cmbPort.Value)
-			serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, StopBit, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, config value, no parity
+			serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, intStopBit, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, config value, no parity
 			astream.Initialize(serial1.GetInputStream, serial1.GetOutputStream, "astream")
 		Catch
 			LogMessage("Status", "Error Open Port" & LastException)
@@ -304,11 +314,11 @@ Private Sub btnLoadFile_Click
 	filepath = fc.ShowOpen(B4XPages.GetNativeParent(Me))
    
 	If filepath <> "" Then
-		LastFilePath = filepath
+		strLastFilePath = filepath
 		LogMessage("Status", "File Path: " & filepath)	
-		firmware = ConvertHexIntelToBinaryRange(filepath, StartAddrFlash)
+		firmware = ConvertHexIntelToBinaryRange(filepath, intStartAddrFlash)
 	Else
-		LastFilePath = ""
+		strLastFilePath = ""
 		LogMessage("Status", "No file selected.")
 	End If
 End Sub
@@ -320,12 +330,12 @@ Sub ConvertHexIntelToBinaryRange(filepath As String, startAddr As Int) As Byte()
 		Dim startByte As Int = startAddr * 2
 	    
 		' Create binary array relative to startAddr
-		Dim firmwareData(ExpectedFirmwareBytes) As Byte
+		Dim firmwareData(intExpectedFirmwareBytes) As Byte
 	    
 		' LSB(0xFF) Then MSB(0x3F) format in binary Firmware()
 		For i = 0 To firmwareData.Length - 1 Step 2
 			firmwareData(i) = 0xFF
-			firmwareData(i+1) = MSBWordAddr			' 0x3F on PIC
+			firmwareData(i+1) = intMSBWordAddr			' 0x3F on PIC
 		Next
 	    
 		' Detect if type of intel hex
@@ -440,7 +450,7 @@ Sub SendHandshakeLoop
 		End If
 				
 		' Avoid flooding UART
-		Sleep(HandShakeDelayMS)
+		Sleep(intHandShakeDelayMS)
 		
 		xTract = xTract + 1
 		If xTract >= 2 Then xTract = 0
@@ -449,18 +459,18 @@ End Sub
 Sub SendFirmware
 	' Firmware Binary file must be all flash data including empty address!
 	
-	Dim totalBlocks As Int = Ceil(firmware.Length / BlockSize)
-	Dim block(BlockSize) As Byte
+	Dim totalBlocks As Int = Ceil(firmware.Length / intBlockSize)
+	Dim block(intBlockSize) As Byte
 
-	LogMessage("FirmwareUpload", "Firmware size: " & firmware.Length & " bytes, total blocks: " & totalBlocks & ", bytes/block: " & BlockSize)
+	LogMessage("FirmwareUpload", "Firmware size: " & firmware.Length & " bytes, total blocks: " & totalBlocks & ", bytes/block: " & intBlockSize)
 
-	For i = 0 To firmware.Length - 1 Step BlockSize
+	For i = 0 To firmware.Length - 1 Step intBlockSize
 
 		' Copy bytes into block with padding if last block is smaller
 		Dim remaining As Int = firmware.Length - i
-		Dim currentBlockSize As Int = Min(BlockSize, remaining)
+		Dim currentBlockSize As Int = Min(intBlockSize, remaining)
 		        
-		For j = 0 To BlockSize - 1
+		For j = 0 To intBlockSize - 1
 			If j < currentBlockSize Then
 				' Copy firmware bytes into block
 				block(j) = firmware(i + j)
@@ -483,22 +493,22 @@ Sub SendFirmware
 		'Reset this
 		blnACK = False
 		
-		If UseWriteBurst = False Then 				
+		If blnUseWriteBurst = False Then 				
 			' Send each byte with minimum 2 ms delay
-			For x = 0 To BlockSize - 1
+			For x = 0 To intBlockSize - 1
 				Dim b(1) As Byte       				' single-byte array
 				b(0) = block(x)        				' copy current byte
 				astream.Write(b)       				' send the byte
-				Sleep(PacketDelayMS) 			   	' small delay between bytes
+				Sleep(intPacketDelayMS) 			' small delay between bytes
 			Next
 		Else
 			' Send burst of data blocks (not tested yet!)
 			astream.Write(block)
-			Sleep(PacketDelayMS)
+			Sleep(intPacketDelayMS)
 		End If
 		
 		' Update progress bar
-		prgBar.Progress = Min(1, (i + BlockSize) / firmware.Length)
+		prgBar.Progress = Min(1, (i + intBlockSize) / firmware.Length)
 
 	Next
 	
@@ -641,48 +651,48 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 					If CheckName = SelectedPicName Then
 						txtLog.Text = ""
 						
-						StartAddrFlash = cfg.Get("StartAddrFlash")		' Start Address of Flash
-						EndAddrFlash = cfg.Get("EndAddrFlash")			' End Address of Flash
-						WordsPerPacket = cfg.Get("WordsPerPacket")		' Total Word Per Packet for Write Block
-						PacketDelayMS = cfg.Get("PacketDelayMS")		' Write Block Packet Delay
-						HandShakeDelayMS = cfg.Get("HandShakeDelayMS")	' Handshake Delay
-						MSBWordAddr = cfg.Get("MSBWordAddr")			' 14 bit word address MSB
-						UseWriteBurst = cfg.Get("UseWriteBurst")		' No delays in between bytes if True!
-						StopBit = cfg.Get("StopBit")					' 1 or 2 stop bits, older pic need 2 so it buys time in while loop
-						Notes = cfg.Get("Notes")						' Special Notes
+						intStartAddrFlash = cfg.Get("StartAddrFlash")	' Start Address of Flash
+						intEndAddrFlash = cfg.Get("EndAddrFlash")		' End Address of Flash
+						intWordsPerPacket = cfg.Get("WordsPerPacket")	' Total Word Per Packet for Write Block
+						intPacketDelayMS = cfg.Get("PacketDelayMS")		' Write Block Packet Delay
+						intHandShakeDelayMS = cfg.Get("HandShakeDelayMS")' Handshake Delay
+						intMSBWordAddr = cfg.Get("MSBWordAddr")			' 14 bit word address MSB
+						blnUseWriteBurst = cfg.Get("UseWriteBurst")		' No delays in between bytes if True!
+						intStopBit = cfg.Get("StopBit")					' 1 or 2 stop bits, older pic need 2 so it buys time in while loop
+						strNotes = cfg.Get("Notes")						' Special Notes
 						
-						BlockSize = WordsPerPacket * 2					' eg. 4 words = 8 bytes per Write block
-						ExpectedFirmwareBytes = (EndAddrFlash - StartAddrFlash + 1) * 2
+						intBlockSize = intWordsPerPacket * 2			' eg. 4 words = 8 bytes per Write block
+						intExpectedFirmwareBytes = (intEndAddrFlash - intStartAddrFlash + 1) * 2
 						
 						' Set Proper Arrays to FirmwareVerfiy()
 						firmwareVerify = Array As Byte()
-						Dim temp(ExpectedFirmwareBytes) As Byte
+						Dim temp(intExpectedFirmwareBytes) As Byte
 						firmwareVerify = temp
 		
 						' Make sure reload the Intel Hex file to new Firmware() array
-						If LastFilePath <> "" Then
-							firmware = ConvertHexIntelToBinaryRange(LastFilePath, StartAddrFlash)
+						If strLastFilePath <> "" Then
+							firmware = ConvertHexIntelToBinaryRange(strLastFilePath, intStartAddrFlash)
 						End If
 						
 						' If port already open change stop bit!
 						If btnOpen.Text = "Close Port" Then
-							serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, StopBit, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, config value, no parity
+							serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, intStopBit, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, config value, no parity
 						End If
 						
 						LogMessage("", "---------------------------------------------------------")
 						LogMessage("", "CONFIGURATION FOR " & CheckName)
 						LogMessage("", "---------------------------------------------------------")
-						LogMessage("", "Notes: " & Notes)
-						LogMessage(":::", "Start Address = 0x" & Bit.ToHexString(StartAddrFlash).ToUpperCase)
-						LogMessage(":::", "End Address = 0x" & Bit.ToHexString(EndAddrFlash).ToUpperCase)
-						LogMessage(":::", "Unimplemented Memory = 0x" & Bit.ToHexString(MSBWordAddr).ToUpperCase)
-						LogMessage(":::", "HandShake Delay = " & HandShakeDelayMS & " ms")
-						LogMessage(":::", "Packet Delay = " & PacketDelayMS & "ms")
-						LogMessage(":::", "Write Burst = " & UseWriteBurst)
-						LogMessage(":::", "Stop Bit = " & StopBit)
+						LogMessage("", "Notes: " & strNotes)
+						LogMessage(":::", "Start Address = 0x" & Bit.ToHexString(intStartAddrFlash).ToUpperCase)
+						LogMessage(":::", "End Address = 0x" & Bit.ToHexString(intEndAddrFlash).ToUpperCase)
+						LogMessage(":::", "Unimplemented Memory = 0x" & Bit.ToHexString(intMSBWordAddr).ToUpperCase)
+						LogMessage(":::", "HandShake Delay = " & intHandShakeDelayMS & " ms")
+						LogMessage(":::", "Packet Delay = " & intPacketDelayMS & " ms")
+						LogMessage(":::", "Write Burst = " & blnUseWriteBurst)
+						LogMessage(":::", "Stop Bits = " & intStopBit)
 						
-						LogMessage("", "Block Write Size = " & (BlockSize/2) & " word (" & BlockSize & " bytes)")
-						LogMessage("", "Expected Firmware Size = " & (ExpectedFirmwareBytes/2) & " word (" & ExpectedFirmwareBytes & " bytes)")
+						LogMessage("", "Block Write Size = " & (intBlockSize/2) & " word (" & intBlockSize & " bytes)")
+						LogMessage("", "Expected Firmware Size = " & (intExpectedFirmwareBytes/2) & " word (" & intExpectedFirmwareBytes & " bytes)")
 						LogMessage("", "---------------------------------------------------------")
   						Return True
 					End If			
