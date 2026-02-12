@@ -1,6 +1,6 @@
 /*
  * File:   bootloader.c
- * Version: 1.11
+ * Version: 1.12
  * Author: Issac
  *
  * Created on January 19, 2026, 2:50 PM
@@ -238,7 +238,7 @@ void Verify_Flash(void)
 {
     uint16_t addr;
     
-    // Timer not needed.  B4J will receive continous Block of data with 30 ms delay
+    // Timer Interrupt not needed.  B4J will receive continous data from Program Memory
     Timer2_Stop();                  
 
     // Send to host
@@ -279,6 +279,9 @@ void Verify_Flash(void)
 // ERASE FLASH BLOCK 32 word erase at each for 
 void Flash_EraseApplication(void)
 {
+    // Timer Interrupt not needed.  
+    Timer2_Stop();   
+                
     // Send to host
     UART_TxString("<StartFlashErase>");    
     __delay_ms(MSG_MS_DELAY);
@@ -325,9 +328,7 @@ bool ReceivePacket(void)
 {
     uint8_t temp[FLASH_WRITE_BLOCK * 2];        // Variable to hold packet received (8 bytes expected)
     uint8_t byteCount = 0;                      // counter
-
-    //RCSTAbits.CREN = 1;                         // make sure continuous receive enabled
-        
+     
     while (byteCount < FLASH_WRITE_BLOCK * 2)   // 4 Word = Flash_write_Block * 2 = 8 bytes expected
     {    
         // Timeout check
@@ -340,12 +341,7 @@ bool ReceivePacket(void)
         if (PIR1bits.RCIF)                  // RCIF = 1 when RCREG has new byte
         {
             temp[byteCount] = UART_Rx();
-            
             byteCount++;                    // Increment counter
-            
-            //Timer2_Stop();                  // Reset timer2 
-            //Timer2_Start();
-            
         }
         // else: just loop until RCIF=1 or timeout
     }
@@ -360,28 +356,27 @@ bool ReceivePacket(void)
         flash_packet[i] = ((uint16_t)temp[i*2 + 1] << 8) | temp[i*2];
     }
 
-    Timer2_Stop();
+    //Timer2_Stop();      // Can remove??? dofirmware will reset it?
     return true;
 }
 
 // When ready will use this in future
 void DoFirmwareUpdate(void)
 {    
-    UART_TxString("<StartFlashWrite>");     // Start of Flash Write Block
+    UART_TxString("<StartFlashWrite>");     // Start of Flash Write Block Message
     __delay_ms(MSG_MS_DELAY);
     
     uint16_t flashAddr = FLASH_START;
-    uint8_t timeoutCount = 0;               // count consecutive timeouts
+    uint8_t timeoutCount = 0;               // count consecutive timeouts = 3 exit!
         
     while (1)
     {
-        Timer2_Stop();                      // Reset timer2
+        Timer2_Stop();                      // Reset Timer2
         Timer2_Start();
  
-        // PC B4J need this for next packet receive
-        UART_TxString("<ACK>"); 
+        UART_TxString("<ACK>");             // PC B4J need this for next packet send
     
-        if (ReceivePacket())                // Check packet 8 bytes total 4 word
+        if (ReceivePacket())                // Check packet eg. 8 bytes total 4 word (if true execute in here)
         {
             
             /* For Debuggin only!!!
@@ -401,14 +396,14 @@ void DoFirmwareUpdate(void)
             __delay_ms(10);
             */
             
-            // Successfully received a packet, reset timeout counter
+            // Successfully received a packet, reset timeoutCount
             timeoutCount = 0;
                         
-            // Write 4-word block to flash
+            // Write eg. at address with 4-word Program memory data
             Flash_WriteBlock(flashAddr, flash_packet);
 
-            // Move to next flash block
-            flashAddr += FLASH_WRITE_BLOCK;     // currently 4
+            // Move to next flash block (+4 address)
+            flashAddr += FLASH_WRITE_BLOCK;     // 4 on PIC 16F88
              
             // stop if we reach end of flash memory
             if (flashAddr + FLASH_WRITE_BLOCK - 1 > FLASH_END)
@@ -417,6 +412,7 @@ void DoFirmwareUpdate(void)
                 UART_TxString("<EndFlashWrite>");
                 __delay_ms(MSG_MS_DELAY);  
                  
+                // This sends continous program memory data to B4J Host in Blocks with delay in between
                 Verify_Flash();
                 
                 return;
@@ -429,7 +425,8 @@ void DoFirmwareUpdate(void)
             
             Timer2_Stop();
             
-            UART_TxString("<ISR Timeout>");         // Send to host
+            // Send to host
+            UART_TxString("<ISR Timeout>");       
             __delay_ms(MSG_MS_DELAY);              
             
                         
@@ -470,11 +467,8 @@ void WaitHandshake(void) {
                 
             // Expecting 0xAA and 0x55 from PC to enter Flash mode
             if(prev == 0x55 && curr == 0xAA) 
-            {
-                // Stop and clear timeout
-                Timer2_Stop();                 
-                
-                // Send initialization acknowledgment before starting Erase and Flash update
+            {                         
+                // Send initialization acknowledgment before starting Flash Erase and Flash Write update
                 UART_TxString("<InitReceived>");
                 __delay_ms(MSG_MS_DELAY);
                 
