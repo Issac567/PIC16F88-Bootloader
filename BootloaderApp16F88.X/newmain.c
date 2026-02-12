@@ -1,7 +1,7 @@
 /*
  * File:   newmain.c
  * Author: issac
- * Version: 1.04
+ * Version: 1.05
  * Created on January 18, 2026, 12:13 PM
  */
 
@@ -47,6 +47,22 @@ void UART_Init(void)
     RCSTAbits.CREN = 1;     // Continuous receive enable
 }
 
+void UART_Tx(uint8_t d)
+{
+    while (!PIR1bits.TXIF);     // Wait until TX ready
+    TXREG = d;                  // Send data
+}
+
+void UART_TxString(const char *s)
+{
+    char currentChar;          
+    for (uint16_t i = 0; s[i] != '\0'; i++)     // Loop using index
+    {
+        currentChar = s[i];                     // Store current character
+        UART_Tx(s[i]);
+    }
+}
+
 uint8_t UART_Rx(void)
 {
     if (RCSTAbits.OERR)         // If overrun error (receiver full, unread data lost)
@@ -59,7 +75,7 @@ uint8_t UART_Rx(void)
 }
 
 
-// Write to EEPROM just one address to confirm on real hardware.
+// Write to EEPROM just one address to confirm on real hardware. (not used just for testing!)
 void EEPROM_WriteByte(uint8_t address, uint8_t data) 
 {
     // Not used just keeping a template of it!
@@ -80,6 +96,7 @@ void EEPROM_WriteByte(uint8_t address, uint8_t data)
     INTCONbits.GIE = 1;                 // Enable interrupts
     EECON1bits.WREN = 0;                // Disable write
 }
+
 
 void main(void) {
     // Add application code here......
@@ -104,6 +121,10 @@ void main(void) {
             b = UART_Rx();
             if (b == 0x55)              // This is Handshake byte. In application 0xAA is not needed.  It will reboot then 0x55 and 0xAA will be detected
             {
+                // Send to Host Handshake received at app location
+                UART_TxString("<InitFromApp>");
+                //__delay_ms(50);
+                
                 asm ("goto 0x0000");    // Restart to bootloader in preparation for flash
             } 
         }
