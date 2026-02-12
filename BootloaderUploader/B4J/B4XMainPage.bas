@@ -5,7 +5,7 @@ Type=Class
 Version=9.85
 @EndOfDesignText@
 
-' VERSION 2.11
+' VERSION 2.12
 ' Using .Exe from Build Standalone Package you must include the .map files in 
 ' \BootloaderUploader\Objects\temp\build\bin\configs
 
@@ -35,12 +35,12 @@ Sub Class_Globals
 	Private serial1 As Serial								' UART COM
 	Private astream As AsyncStreams							' Read/Write Stream
 	
-	Private Root As B4XView
-	Private xui As XUI
-	
 	'---------------------------------------
 	' UI Elements
 	'---------------------------------------
+	Private Root As B4XView
+	Private xui As XUI
+	
 	Private btnFlash As Button
 	Private btnLoadFile As Button
 	Private btnOpen As Button
@@ -65,8 +65,6 @@ Sub Class_Globals
 	Private rxBufferByte() As Byte							' Buffer Newdata in byte format 
 
 	Private strLastFilePath As String						' Reloads firmware from FILE when PIC name changed so Firmware array be corrected
-	
-
 End Sub
 
 Public Sub Initialize
@@ -178,8 +176,11 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 	' 0x55 and 0xAA received by PIC
 	If msg.Contains("<InitReceived>") Then
 		blnHandShakeSuccess = True
-		LogMessage("Status", "PIC responded! Done sending 0x55 0xAA")
-			
+		LogMessage("Status", "Bootloader responded. Done sending 0x55 0xAA")
+	
+	Else If msg.Contains("<InitFromApp>") Then
+		LogMessage("Status", "App responded. Entering bootloader...")
+		
 	' Timeout 3 times = error by PIC
 	Else If msg.Contains("<ErrorTimeout>") Then
 		blnExitTimeoutError = True
@@ -194,7 +195,7 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 	Else If msg.Contains("<StartFlashVerify>") Then
 		cntVerify = 0
 		blnVerifyRequest = True
-		LogMessage("Status", "Waiting for Verification...")
+		LogMessage("Status", "Waiting for verification...")
 		
 	' End of verify flash program code
 	Else If msg.Contains("<EndFlashVerify>") Then
@@ -335,7 +336,7 @@ Sub ConvertHexIntelToBinaryRange(filepath As String, startAddr As Int) As Byte()
 		' LSB(0xFF) Then MSB(0x3F) format in binary Firmware()
 		For i = 0 To firmwareData.Length - 1 Step 2
 			firmwareData(i) = 0xFF
-			firmwareData(i+1) = intMSBWordAddr			' 0x3F on PIC
+			firmwareData(i+1) = intMSBWordAddr			' 0x3F MSB on PIC (eg. 14 bit)
 		Next
 	    
 		' Detect if type of intel hex
@@ -502,7 +503,7 @@ Sub SendFirmware
 				Sleep(intPacketDelayMS) 			' small delay between bytes
 			Next
 		Else
-			' Send burst of data blocks (not tested yet!)
+			' Send burst of data blocks
 			astream.Write(block)
 			Sleep(intPacketDelayMS)
 		End If
@@ -513,8 +514,6 @@ Sub SendFirmware
 	Next
 	
 	LogMessage("FirmwareUpload", "Firmware upload completed!")
-
-
 End Sub
 Sub GetBooleanStatus As Boolean
 	' PIC reported timeout error (Handshake does not have this!)
@@ -653,10 +652,10 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 						
 						intStartAddrFlash = cfg.Get("StartAddrFlash")	' Start Address of Flash
 						intEndAddrFlash = cfg.Get("EndAddrFlash")		' End Address of Flash
+						intMSBWordAddr = cfg.Get("MSBWordAddr")			' Word Address MSB Data Limit (eg. 3FFF = 3F)
 						intWordsPerPacket = cfg.Get("WordsPerPacket")	' Total Word Per Packet for Write Block
 						intPacketDelayMS = cfg.Get("PacketDelayMS")		' Write Block Packet Delay
 						intHandShakeDelayMS = cfg.Get("HandShakeDelayMS")' Handshake Delay
-						intMSBWordAddr = cfg.Get("MSBWordAddr")			' 14 bit word address MSB
 						blnUseWriteBurst = cfg.Get("UseWriteBurst")		' No delays in between bytes if True!
 						intStopBit = cfg.Get("StopBit")					' 1 or 2 stop bits, older pic need 2 so it buys time in while loop
 						strNotes = cfg.Get("Notes")						' Special Notes
@@ -674,7 +673,7 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 							firmware = ConvertHexIntelToBinaryRange(strLastFilePath, intStartAddrFlash)
 						End If
 						
-						' If port already open change stop bit!
+						' If port already open update stop bit parameter!
 						If btnOpen.Text = "Close Port" Then
 							serial1.SetParams(serial1.BAUDRATE_57600, serial1.DATABITS_8, intStopBit, serial1.PARITY_NONE)  ' Set baud=57600, 8 data bits, config value, no parity
 						End If
@@ -690,8 +689,8 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 						LogMessage(":::", "Packet Delay = " & intPacketDelayMS & " ms")
 						LogMessage(":::", "Write Burst = " & blnUseWriteBurst)
 						LogMessage(":::", "Stop Bits = " & intStopBit)
+						LogMessage(":::", "Block Write Size = " & intWordsPerPacket & " word (" & intBlockSize & " bytes)")
 						
-						LogMessage("", "Block Write Size = " & (intBlockSize/2) & " word (" & intBlockSize & " bytes)")
 						LogMessage("", "Expected Firmware Size = " & (intExpectedFirmwareBytes/2) & " word (" & intExpectedFirmwareBytes & " bytes)")
 						LogMessage("", "---------------------------------------------------------")
   						Return True
