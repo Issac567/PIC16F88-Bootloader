@@ -33,13 +33,13 @@
         <targetDevice>PIC16F88</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>PICkit3PlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC8</languageToolchain>
         <languageToolchainVersion>3.10</languageToolchainVersion>
         <platform>3</platform>
       </toolsSet>
       <packs>
-        <pack name="PIC16Fxxx_DFP" vendor="Microchip" version="1.6.156"/>
+        <pack name="PIC16Fxxx_DFP" vendor="Microchip" version="1.7.162"/>
       </packs>
       <ScriptingSettings>
       </ScriptingSettings>
