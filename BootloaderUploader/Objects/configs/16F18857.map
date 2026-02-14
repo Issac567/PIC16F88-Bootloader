@@ -9,3 +9,5 @@ UseWriteBurst=true
 WordsPerPacket=32
 StopBit=1
 Notes=None
+ExpectedBytes=62464
+UseWordScaling=true

@@ -1,0 +1,13 @@
+#Fri Feb 06 21:58:55 PST 2026
+EndAddrFlash=131071
+HandShakeDelayMS=200
+MSBWordAddr=255
+PacketDelayMS=0
+PicName=18F27K42
+StartAddrFlash=2304
+UseWriteBurst=true
+WordsPerPacket=64
+StopBit=1
+Notes=None
+ExpectedBytes=128768
+UseWordScaling=false
