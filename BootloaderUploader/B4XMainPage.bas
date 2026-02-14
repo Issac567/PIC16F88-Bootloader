@@ -25,8 +25,9 @@ Sub Class_Globals
 	Private blnUseWriteBurst  As Boolean					
 	Private intStopBit As Int = 1							' Default
 	Private strNotes As String 
-	
 	Private intExpectedFirmwareBytes As Int
+	Private blnUseWordScaling As Boolean
+	
 	Private intBlockSize As Int
 
 	'---------------------------------------
@@ -124,8 +125,8 @@ End Sub
 '--------------------------------------------------------
 Sub AStream_NewData (Buffer() As Byte)	
 	' Option display Hex for Debugging!
-'	Dim AddHexView As String = BytesToHexString(Buffer).ToUpperCase
-'	LogMessage("Hex", AddHexView)
+	'Dim AddHexView As String = BytesToHexString(Buffer).ToUpperCase
+	'LogMessage("Hex", AddHexView)
 	
 	' Append ASCII string for <…> parsing
 	rxBufferString = rxBufferString & BytesToString(Buffer, 0, Buffer.Length, "UTF8") 
@@ -174,66 +175,67 @@ Sub HandleMessage(msg As String, buffer() As Byte)
 	End If
 	
 	' 0x55 and 0xAA received by PIC
-	If msg.Contains("<InitReceived>") Then
-		blnHandShakeSuccess = True
-		LogMessage("Status", "Bootloader responded. Done sending 0x55 0xAA")
-	
-	Else If msg.Contains("<InitFromApp>") Then
-		LogMessage("Status", "App responded. Entering bootloader...")
+	Select Case msg
+		Case "<InitReceived>"
+			blnHandShakeSuccess = True
+			LogMessage("Status", "Bootloader responded. Done sending 0x55 0xAA")
 		
-	' Timeout 3 times = error by PIC
-	Else If msg.Contains("<ErrorTimeout>") Then
-		blnExitTimeoutError = True
-		EnableFunction
-		LogMessage("Status", "PIC reported timeout error, try again")
-		
-	' 3 seconds timeout.  if no handshake it will enter application
-	Else If msg.Contains("<HandShakeTimeout>") Then
-		LogMessage("Status", "Timeout exiting bootloader --> entering application.")
-		
-	' Start of verify flash program code
-	Else If msg.Contains("<StartFlashVerify>") Then
-		cntVerify = 0
-		blnVerifyRequest = True
-		LogMessage("Status", "Waiting for verification...")
-		
-	' End of verify flash program code
-	Else If msg.Contains("<EndFlashVerify>") Then
-		EnableFunction
-		VerifyStatus
-		
-	' End of Erase Flash. When Pic send this delay a bit and start the flash upload
-	Else If msg.Contains("<EndFlashErase>") Then
-		Sleep(200)
-		SendFirmware
-	
-	' B4J expects <ACK> from PIC so it sends next packets in Firmware Upload routine
-	Else If msg.Contains("<ACK>")  Then
-		blnACK = True
+		Case "<InitFromApp>"
+			LogMessage("Status", "App responded. Entering bootloader...")
 			
-	Else
-		' This is triggered by <StartFlashVerify> from PIC after Flash Write is completed
-		If blnVerifyRequest = True Then
-			'LogMessage("Incoming", BytesToHexString(buffer))  ' debugging only!!!
-							
-			For x = 0 To buffer.Length - 1  ' This method is better.  Newdata does not guarantee all block in one event
-				' This array will compare to firmware() which is Converted FILE binary
-				firmwareVerify(cntVerify) = buffer(x)
-									
-				' Update progress bar
-				prgBar.Progress = Min(1, cntVerify / intExpectedFirmwareBytes)
-				cntVerify = cntVerify + 1
+		' Timeout 3 times = error by PIC
+		Case "<ErrorTimeout>"
+			blnExitTimeoutError = True
+			EnableFunction
+			LogMessage("Status", "PIC reported timeout error, try again")
+			
+		' 3 seconds timeout.  if no handshake it will enter application
+		Case "<HandShakeTimeout>"
+			LogMessage("Status", "Timeout exiting bootloader --> entering application.")
+			
+		' Start of verify flash program code
+		Case "<StartFlashVerify>"
+			cntVerify = 0
+			blnVerifyRequest = True
+			LogMessage("Status", "Waiting for verification...")
+			
+		' End of verify flash program code
+		Case "<EndFlashVerify>"
+			EnableFunction
+			VerifyStatus
+			
+		' End of Erase Flash. When Pic send this delay a bit and start the flash upload
+		Case "<EndFlashErase>"
+			Sleep(200)
+			SendFirmware
+		
+		' B4J expects <ACK> from PIC so it sends next packets in Firmware Upload routine
+		Case "<ACK>"
+			blnACK = True
 				
-				' Check if we reached the expected firmware size
-				If cntVerify >= intExpectedFirmwareBytes Then
-					' Let <EndFlashVerify> display the status of Verify!
-					' Just enable button here
-					EnableFunction
-					Exit
-				End If
-			Next
-		End If
-	End If
+		Case Else
+			' This is triggered by <StartFlashVerify> from PIC after Flash Write is completed
+			If blnVerifyRequest = True Then
+				'LogMessage("Incoming", BytesToHexString(buffer))  ' debugging only!!!
+								
+				For x = 0 To buffer.Length - 1  ' This method is better.  Newdata does not guarantee all block in one event
+					' This array will compare to firmware() which is Converted FILE binary
+					firmwareVerify(cntVerify) = buffer(x)
+										
+					' Update progress bar
+					prgBar.Progress = Min(1, cntVerify / intExpectedFirmwareBytes)
+					cntVerify = cntVerify + 1
+					
+					' Check if we reached the expected firmware size
+					If cntVerify >= intExpectedFirmwareBytes Then
+						' Let <EndFlashVerify> display the status of Verify!
+						' Just enable button here
+						EnableFunction
+						Exit
+					End If
+				Next
+			End If
+	End Select
 			
 End Sub
 Sub AStream_Error
@@ -328,7 +330,13 @@ Sub ConvertHexIntelToBinaryRange(filepath As String, startAddr As Int) As Byte()
 		
 		Dim lines As List = File.ReadList("", filepath)
 	    
-		Dim startByte As Int = startAddr * 2
+		Dim startByte As Int
+		
+		If blnUseWordScaling = True Then
+			startByte = startAddr * 2		' eg. PIC 16F88
+		Else
+			startByte = startAddr			' eg. PIC 18F27K42
+		End If
 	    
 		' Create binary array relative to startAddr
 		Dim firmwareData(intExpectedFirmwareBytes) As Byte
@@ -365,7 +373,6 @@ Sub ConvertHexIntelToBinaryRange(filepath As String, startAddr As Int) As Byte()
 				If arrayIndex >= 0 And arrayIndex < firmwareData.Length Then
 					firmwareData(arrayIndex) = b
 					blnDetectRecord = True
-					'LogMessage(arrayIndex, Bit.ToHexString(b).ToUpperCase)
 				End If
 			Next
 		Next
@@ -650,19 +657,20 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 					If CheckName = SelectedPicName Then
 						txtLog.Text = ""
 						
-						intStartAddrFlash = cfg.Get("StartAddrFlash")	' Start Address of Flash
-						intEndAddrFlash = cfg.Get("EndAddrFlash")		' End Address of Flash
-						intMSBWordAddr = cfg.Get("MSBWordAddr")			' Word Address MSB Data Limit (eg. 3FFF = 3F)
-						intWordsPerPacket = cfg.Get("WordsPerPacket")	' Total Word Per Packet for Write Block
-						intPacketDelayMS = cfg.Get("PacketDelayMS")		' Write Block Packet Delay
-						intHandShakeDelayMS = cfg.Get("HandShakeDelayMS")' Handshake Delay
-						blnUseWriteBurst = cfg.Get("UseWriteBurst")		' No delays in between bytes if True!
-						intStopBit = cfg.Get("StopBit")					' 1 or 2 stop bits, older pic need 2 so it buys time in while loop
-						strNotes = cfg.Get("Notes")						' Special Notes
+						intStartAddrFlash = cfg.Get("StartAddrFlash")		' Start Address of Flash
+						intEndAddrFlash = cfg.Get("EndAddrFlash")			' End Address of Flash
+						intMSBWordAddr = cfg.Get("MSBWordAddr")				' Word Address MSB Data Limit (eg. 3FFF = 3F)
+						intWordsPerPacket = cfg.Get("WordsPerPacket")		' Total Word Per Packet for Write Block
+						intPacketDelayMS = cfg.Get("PacketDelayMS")			' Write Block Packet Delay
+						intHandShakeDelayMS = cfg.Get("HandShakeDelayMS")	' Handshake Delay
+						blnUseWriteBurst = cfg.Get("UseWriteBurst")			' No delays in between bytes if True!
+						intStopBit = cfg.Get("StopBit")						' 1 or 2 stop bits, older pic need 2 so it buys time in while loop
+						strNotes = cfg.Get("Notes")							' Special Notes
+						intExpectedFirmwareBytes = cfg.Get("ExpectedBytes") ' Total Bytes need flash and erase
+						blnUseWordScaling = cfg.Get("UseWordScaling")		' For Intex Hex Conversion
 						
-						intBlockSize = intWordsPerPacket * 2			' eg. 4 words = 8 bytes per Write block
-						intExpectedFirmwareBytes = (intEndAddrFlash - intStartAddrFlash + 1) * 2
-						
+						intBlockSize = intWordsPerPacket * 2				' eg. 4 words = 8 bytes per Write block
+	
 						' Set Proper Arrays to FirmwareVerfiy()
 						firmwareVerify = Array As Byte()
 						Dim temp(intExpectedFirmwareBytes) As Byte
@@ -690,8 +698,8 @@ Sub LoadConfiguration(SelectedPicName As String) As Boolean
 						LogMessage(":::", "Write Burst = " & blnUseWriteBurst)
 						LogMessage(":::", "Stop Bits = " & intStopBit)
 						LogMessage(":::", "Block Write Size = " & intWordsPerPacket & " word (" & intBlockSize & " bytes)")
-						
-						LogMessage("", "Expected Firmware Size = " & (intExpectedFirmwareBytes/2) & " word (" & intExpectedFirmwareBytes & " bytes)")
+						LogMessage(":::", "Expected Firmware Size = " & (intExpectedFirmwareBytes/2) & " word (" & intExpectedFirmwareBytes & " bytes)")
+						LogMessage(":::", "Use Word Scaling = " & blnUseWordScaling)
 						LogMessage("", "---------------------------------------------------------")
   						Return True
 					End If			
