@@ -1,7 +1,7 @@
 /*
  * File:   newmain.c
  * Author: issac
- * Version: 1.05
+ * Version: 1.06
  * Created on January 18, 2026, 12:13 PM
  */
 
@@ -54,11 +54,9 @@ void UART_Tx(uint8_t d)
 }
 
 void UART_TxString(const char *s)
-{
-    char currentChar;          
+{    
     for (uint16_t i = 0; s[i] != '\0'; i++)     // Loop using index
     {
-        currentChar = s[i];                     // Store current character
         UART_Tx(s[i]);
     }
 }
@@ -123,7 +121,6 @@ void main(void) {
             {
                 // Send to Host Handshake received at app location
                 UART_TxString("<InitFromApp>");
-                //__delay_ms(50);
                 
                 asm ("goto 0x0000");    // Restart to bootloader in preparation for flash
             } 
